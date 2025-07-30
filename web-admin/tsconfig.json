@@ -1,0 +1,12 @@
+{
+  "extends": "./src/.umi/tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "**/node_modules/*"
+  ],
+  "compilerOptions": {
+    "types": [
+      "file-saver"
+    ]
+  }
+}

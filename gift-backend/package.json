@@ -1,0 +1,22 @@
+{
+  "name": "gift-backend",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mongoose": "^8.3.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "description": "基于 Node.js + Express + MongoDB 的礼品兑换后端服务",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
