@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "web-admin/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "web-admin/dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/web-admin/dist/static/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/web-admin/dist/index.html"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+} 
