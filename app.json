@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "0f0888a4-3efd-46e7-aa25-0dcf4b28e450"
+      }
+    },
+    "android": {
+      "package": "com.firemuseum.volunteerapp"
+    },
+    "ios": {
+      "bundleIdentifier": "com.firemuseum.volunteerapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

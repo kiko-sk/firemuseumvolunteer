@@ -5,27 +5,25 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleDebug"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "ios": {
-        "simulator": true
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {
-      "ios": {
-        "resourceClass": "m-medium"
+      "android": {
+        "buildType": "app-bundle"
       }
     }
   },
   "submit": {
     "production": {
-      "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "your-app-store-connect-app-id",
-        "appleTeamId": "your-apple-team-id"
-      },
       "android": {
         "serviceAccountKeyPath": "./path-to-your-service-account.json",
         "track": "production"
