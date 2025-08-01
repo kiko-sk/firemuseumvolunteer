@@ -69,6 +69,7 @@ export default defineConfig({
   esbuildMinifyIIFE: true,
   mfsu: false,
   hash: true,
+  publicPath: './',
   targets: {
     chrome: 80,
     firefox: 80,
