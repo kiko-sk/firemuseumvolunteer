@@ -4,7 +4,9 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "build": "echo 'No build step required'",
+    "vercel-build": "echo 'Vercel build completed'"
   },
   "dependencies": {
     "express": "^4.19.2",
@@ -15,8 +17,11 @@
   "devDependencies": {
     "nodemon": "^3.1.0"
   },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "description": "基于 Node.js + Express + MongoDB 的礼品兑换后端服务",
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "keywords": ["fire-museum", "volunteer", "api"],
+  "author": "Fire Museum Team",
+  "license": "MIT"
 }
