@@ -67,5 +67,23 @@ export default defineConfig({
   ],
   npmClient: 'npm',
   esbuildMinifyIIFE: true,
+  mfsu: false,
+  hash: true,
+  targets: {
+    ie: 11,
+  },
+  chainWebpack: (config) => {
+    config.optimization.splitChunks({
+      chunks: 'all',
+      cacheGroups: {
+        vendor: {
+          name: 'vendors',
+          test: /[\\/]node_modules[\\/]/,
+          priority: 10,
+          chunks: 'initial',
+        },
+      },
+    });
+  },
 });
 
