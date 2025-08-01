@@ -70,7 +70,10 @@ export default defineConfig({
   mfsu: false,
   hash: true,
   targets: {
-    ie: 11,
+    chrome: 80,
+    firefox: 80,
+    safari: 14,
+    edge: 80,
   },
   chainWebpack: (config) => {
     config.optimization.splitChunks({

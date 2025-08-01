@@ -77,4 +77,4 @@ npx expo start
 
 - Node.js >= 16
 - Expo CLI
-- Expo Go App (手机端测试)
+- Expo Go App (手机端测试) 

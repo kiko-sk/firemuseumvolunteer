@@ -99,9 +99,9 @@ if (!fs.existsSync(POINTS_FILE)) {
 
 // MongoDB connection (optional)
 if (MONGODB_URI !== 'mongodb://localhost:27017/giftdb') {
-  mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
 }
 
 // Gift APIs
