@@ -1,174 +1,364 @@
-import React, { useState } from 'react';
-import { PageContainer } from '@ant-design/pro-components';
-import { Table, Select, DatePicker, Button, Space, message } from 'antd';
-import * as XLSX from 'xlsx';
-import dayjs, { Dayjs } from 'dayjs';
-import quarterOfYear from 'dayjs/plugin/quarterOfYear';
-import weekday from 'dayjs/plugin/weekday';
-import localeData from 'dayjs/plugin/localeData';
-import weekOfYear from 'dayjs/plugin/weekOfYear';
-import zhCN from 'antd/es/date-picker/locale/zh_CN';
-dayjs.extend(quarterOfYear);
-dayjs.extend(weekday);
-dayjs.extend(localeData);
-dayjs.extend(weekOfYear);
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Statistic, Progress, Table, Button } from 'antd';
+import { UserOutlined, CalendarOutlined, TrophyOutlined, RiseOutlined, ReloadOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
-const { Option } = Select;
+interface VolunteerData {
+  id: string;
+  name: string;
+  gender: string;
+  age: number;
+  serviceType: string;
+  serviceHours: number;
+  serviceScore: number;
+  explainScore: number;
+  bonusScore: number;
+  totalScore: number;
+  redeemedScore: number;
+  remainingScore: number;
+  status: string;
+  remark?: string;
+}
 
-// mock数据
-const mockData = [
-  {
-    id: '1',
-    type: '场馆服务',
-    signupTime: '2025-06-10 09:00',
-    checkin: '已签到',
-  },
-  {
-    id: '2',
-    type: '讲解服务',
-    signupTime: '2025-06-10 13:30',
-    checkin: '未签到',
-  },
-];
-
-const columns = [
-  { title: '报名类型', dataIndex: 'type' },
-  { title: '报名时间', dataIndex: 'signupTime' },
-  { title: '签到', dataIndex: 'checkin' },
-];
-
-const STAT_TYPES = [
-  { label: '周统计', value: 'week' },
-  { label: '月统计', value: 'month' },
-  { label: '季度统计', value: 'quarter' },
-  { label: '年统计', value: 'year' },
-  { label: '自定义', value: 'custom' },
-];
-
-const customQuarterLocale = {
-  ...zhCN,
-  quarterFormat: 'Q季度',
-};
+interface SignupRecord {
+  id: string;
+  volunteerId: string;
+  volunteerName: string;
+  volunteerPhone: string;
+  volunteerType: string;
+  serviceSlotId: string;
+  date: string;
+  serviceType: string;
+  timeSlot: string;
+  signupTime: string;
+  status: string;
+  points: number;
+  notes?: string;
+}
 
 const StatisticsPage: React.FC = () => {
-  const [statType, setStatType] = useState('week');
-  const [date, setDate] = useState<Dayjs | undefined>(dayjs());
-  const [range, setRange] = useState<[Dayjs, Dayjs] | undefined>(undefined);
-  const [data, setData] = useState(mockData);
+  const [volunteerData, setVolunteerData] = useState<VolunteerData[]>([]);
+  const [signupData, setSignupData] = useState<SignupRecord[]>([]);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
 
-  const handleRangeChange = (dates: (Dayjs | null)[] | null) => {
-    if (Array.isArray(dates) && dates.length === 2 && dates[0] && dates[1]) {
-      setRange([dates[0], dates[1]]);
-    } else {
-      setRange(undefined);
+  // 从localStorage获取数据
+  const loadData = () => {
+    try {
+      // 获取志愿者数据
+      const storedVolunteers = localStorage.getItem('volunteerData');
+      if (storedVolunteers) {
+        setVolunteerData(JSON.parse(storedVolunteers));
+      }
+
+      // 获取报名数据
+      const storedSignups = localStorage.getItem('signupRecords');
+      if (storedSignups) {
+        setSignupData(JSON.parse(storedSignups));
+      }
+
+      setLastUpdateTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
+    } catch (error) {
+      console.error('加载数据失败:', error);
     }
   };
 
-  // 查询按钮事件（后续可对接后端）
-  const handleQuery = () => {
-    // TODO: 调用后端接口，传递statType和date/range参数
-    message.success('已查询（mock数据，后续可对接后端）');
-    setData(mockData); // 实际应为接口返回数据
-  };
+  // 监听localStorage变化
+  useEffect(() => {
+    loadData();
 
-  // 导出Excel
-  const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '报名统计');
-    XLSX.writeFile(wb, '报名统计.xlsx');
-  };
+    // 监听storage事件
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'volunteerData' || e.key === 'signupRecords') {
+        loadData();
+      }
+    };
 
-  // 快捷选择预设
-  const rangePresets = [
-    {
-      label: '本周',
-      value: () => [dayjs().startOf('week'), dayjs().endOf('week')] as [Dayjs, Dayjs],
-    },
-    {
-      label: '本月',
-      value: () => [dayjs().startOf('month'), dayjs().endOf('month')] as [Dayjs, Dayjs],
-    },
-    {
-      label: '本季度',
-      value: () => [dayjs().startOf('quarter'), dayjs().endOf('quarter')] as [Dayjs, Dayjs],
-    },
-    {
-      label: '本年',
-      value: () => [dayjs().startOf('year'), dayjs().endOf('year')] as [Dayjs, Dayjs],
-    },
+    window.addEventListener('storage', handleStorageChange);
+
+    // 定时刷新数据
+    const interval = setInterval(loadData, 5000); // 每5秒刷新一次
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+  };
+  }, []);
+
+  // 计算统计数据
+  const totalVolunteers = volunteerData.length;
+  const activeVolunteers = volunteerData.filter(v => v.status === 'active').length;
+  const needReviewVolunteers = volunteerData.filter(v => v.status === 'need_review').length;
+  const inactiveVolunteers = volunteerData.filter(v => v.status === 'inactive').length;
+  
+  const totalServiceHours = volunteerData.reduce((sum, v) => sum + v.serviceHours, 0);
+  const totalServiceScore = volunteerData.reduce((sum, v) => sum + v.serviceScore, 0);
+  const totalExplainScore = volunteerData.reduce((sum, v) => sum + v.explainScore, 0);
+  const totalBonusScore = volunteerData.reduce((sum, v) => sum + v.bonusScore, 0);
+  const totalScore = volunteerData.reduce((sum, v) => sum + v.totalScore, 0);
+  const totalRedeemedScore = volunteerData.reduce((sum, v) => sum + v.redeemedScore, 0);
+  const totalRemainingScore = volunteerData.reduce((sum, v) => sum + v.remainingScore, 0);
+
+  // 报名统计
+  const totalSignups = signupData.length;
+  const confirmedSignups = signupData.filter(s => s.status === 'confirmed').length;
+  const pendingSignups = signupData.filter(s => s.status === 'pending').length;
+  const cancelledSignups = signupData.filter(s => s.status === 'cancelled').length;
+  const waitlistSignups = signupData.filter(s => s.status === 'waitlist').length;
+
+  // 学生志愿者vs社会志愿者
+  const studentVolunteers = signupData.filter(s => s.volunteerType === '学生志愿者').length;
+  const socialVolunteers = signupData.filter(s => s.volunteerType === '社会志愿者').length;
+
+  // 服务类型统计
+  const venueServiceCount = signupData.filter(s => s.serviceType === '场馆服务').length;
+  const explainServiceCount = signupData.filter(s => s.serviceType === '讲解服务').length;
+
+  // 计算活跃度
+  const activeRate = totalVolunteers > 0 ? Math.round((activeVolunteers / totalVolunteers) * 100) : 0;
+  const completionRate = totalSignups > 0 ? Math.round((confirmedSignups / totalSignups) * 100) : 0;
+
+  // 月度数据（基于当前月份）
+  const currentMonth = dayjs().format('M月');
+  const monthlyData = [
+    { 
+      month: currentMonth, 
+      volunteers: totalVolunteers, 
+      activities: totalSignups, 
+      points: totalScore,
+      serviceHours: totalServiceHours
+    }
   ];
 
-  // 时间选择控件
-  let timeSelector = null;
-  if (statType === 'week') {
-    timeSelector = (
-      <DatePicker
-        picker="week"
-        value={date}
-        onChange={d => setDate(d ?? undefined)}
-        format={val => val ? `${val.year()}年第${val.week()}周` : ''}
-      />
-    );
-  } else if (statType === 'month') {
-    timeSelector = (
-      <DatePicker
-        picker="month"
-        value={date}
-        onChange={d => setDate(d ?? undefined)}
-        format="YYYY年MM月"
-      />
-    );
-  } else if (statType === 'quarter') {
-    timeSelector = (
-      <DatePicker
-        picker="quarter"
-        value={date}
-        onChange={d => setDate(d ?? undefined)}
-        format={val => val ? `${val.year()}-Q${val.quarter()}` : ''}
-        locale={customQuarterLocale}
-      />
-    );
-  } else if (statType === 'year') {
-    timeSelector = (
-      <DatePicker
-        picker="year"
-        value={date}
-        onChange={d => setDate(d ?? undefined)}
-        format="YYYY年"
-      />
-    );
-  } else if (statType === 'custom') {
-    timeSelector = (
-      <DatePicker.RangePicker
-        value={range}
-        onChange={handleRangeChange}
-        presets={rangePresets}
-        format="YYYY-MM-DD"
-      />
-    );
-  }
+  const columns = [
+    { title: '月份', dataIndex: 'month', key: 'month' },
+    { title: '志愿者数', dataIndex: 'volunteers', key: 'volunteers' },
+    { title: '报名数', dataIndex: 'activities', key: 'activities' },
+    { title: '服务时长', dataIndex: 'serviceHours', key: 'serviceHours', render: (hours: number) => `${hours}小时` },
+    { title: '积分总数', dataIndex: 'points', key: 'points' },
+  ];
 
   return (
-    <PageContainer header={{ title: '报名统计' }}>
-      <div style={{ background: '#fff', padding: 24, borderRadius: 8, marginBottom: 24 }}>
-        <Space>
-          <Select value={statType} onChange={setStatType} style={{ width: 120 }}>
-            {STAT_TYPES.map(opt => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}
-          </Select>
-          {timeSelector}
-          <Button type="primary" onClick={handleQuery}>查询</Button>
-          <Button onClick={handleExport}>导出Excel</Button>
-        </Space>
+    <div style={{ padding: '24px' }}>
+      {/* 数据更新时间 */}
+      <div style={{ marginBottom: '16px', textAlign: 'right' }}>
+        <Button 
+          icon={<ReloadOutlined />} 
+          onClick={loadData}
+          size="small"
+        >
+          刷新数据
+        </Button>
+        <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+          最后更新: {lastUpdateTime}
+        </span>
       </div>
+
+      <Row gutter={16} style={{ marginBottom: '24px' }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="总志愿者数"
+              value={totalVolunteers}
+              prefix={<UserOutlined />}
+              valueStyle={{ color: '#3f8600' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="总报名数"
+              value={totalSignups}
+              prefix={<CalendarOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="总积分"
+              value={totalScore}
+              prefix={<TrophyOutlined />}
+              valueStyle={{ color: '#722ed1' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="总服务时长"
+              value={totalServiceHours}
+              suffix="小时"
+              prefix={<RiseOutlined />}
+              valueStyle={{ color: '#fa8c16' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginBottom: '24px' }}>
+        <Col xs={24} lg={12}>
+          <Card title="志愿者状态分布">
+            <Row gutter={16}>
+              <Col span={8}>
+                <Statistic
+                  title="活跃"
+                  value={activeVolunteers}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Col>
+              <Col span={8}>
+                <Statistic
+                  title="待审核"
+                  value={needReviewVolunteers}
+                  valueStyle={{ color: '#fa8c16' }}
+                />
+              </Col>
+              <Col span={8}>
+                <Statistic
+                  title="非活跃"
+                  value={inactiveVolunteers}
+                  valueStyle={{ color: '#ff4d4f' }}
+                />
+              </Col>
+            </Row>
+            <Progress 
+              percent={activeRate} 
+              status="active" 
+              format={() => `活跃度: ${activeRate}%`}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="报名状态分布">
+            <Row gutter={16}>
+              <Col span={6}>
+                <Statistic
+                  title="已确认"
+                  value={confirmedSignups}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Col>
+              <Col span={6}>
+                <Statistic
+                  title="待确认"
+                  value={pendingSignups}
+                  valueStyle={{ color: '#fa8c16' }}
+                />
+              </Col>
+              <Col span={6}>
+                <Statistic
+                  title="已取消"
+                  value={cancelledSignups}
+                  valueStyle={{ color: '#ff4d4f' }}
+                />
+              </Col>
+              <Col span={6}>
+                <Statistic
+                  title="候补"
+                  value={waitlistSignups}
+                  valueStyle={{ color: '#722ed1' }}
+                />
+              </Col>
+            </Row>
+            <Progress 
+              percent={completionRate} 
+              format={() => `完成率: ${completionRate}%`}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginBottom: '24px' }}>
+        <Col xs={24} lg={12}>
+          <Card title="志愿者类型分布">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Statistic
+                  title="学生志愿者"
+                  value={studentVolunteers}
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="社会志愿者"
+                  value={socialVolunteers}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="服务类型分布">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Statistic
+                  title="场馆服务"
+                  value={venueServiceCount}
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="讲解服务"
+                  value={explainServiceCount}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginBottom: '24px' }}>
+        <Col span={24}>
+          <Card title="积分详细统计">
+            <Row gutter={16}>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title="服务积分"
+                  value={totalServiceScore}
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Col>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title="讲解积分"
+                  value={totalExplainScore}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Col>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title="附加积分"
+                  value={totalBonusScore}
+                  valueStyle={{ color: '#fa8c16' }}
+                />
+              </Col>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title="已兑换积分"
+                  value={totalRedeemedScore}
+                  valueStyle={{ color: '#ff4d4f' }}
+                />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+      </Row>
+
+      <Card title="月度统计">
       <Table
         columns={columns}
-        dataSource={data}
-        rowKey="id"
-        locale={{ emptyText: <div style={{ textAlign: 'center', color: '#ccc' }}><div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>No data</div> }}
+          dataSource={monthlyData} 
+          rowKey="month" 
         pagination={false}
       />
-    </PageContainer>
+      </Card>
+    </div>
   );
 };
 

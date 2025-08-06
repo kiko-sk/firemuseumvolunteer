@@ -102,25 +102,23 @@ const LoginPage: React.FC = () => {
       // 只支持手机号或邮箱注册
       const phoneOrEmail = values.phone;
       const password = values.password;
-      
-      // 先尝试Supabase注册
       let result;
-      try {
-        if (/^1\d{10}$/.test(phoneOrEmail)) {
-          // 手机号注册
-          result = await supabase.auth.signUp({ phone: phoneOrEmail, password });
-        } else if (/^[\w.-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(phoneOrEmail)) {
-          // 邮箱注册
-          result = await supabase.auth.signUp({ email: phoneOrEmail, password });
-        } else {
-          message.error('请输入有效的手机号或邮箱');
-          setLoading(false);
-          return;
-        }
-        
-        if (result.error) {
-          // 如果Supabase注册失败，使用本地注册
-          console.log('Supabase注册失败，使用本地注册:', result.error.message);
+      if (/^1\d{10}$/.test(phoneOrEmail)) {
+        // 手机号注册
+        result = await supabase.auth.signUp({ phone: phoneOrEmail, password });
+      } else if (/^[\w.-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(phoneOrEmail)) {
+        // 邮箱注册
+        result = await supabase.auth.signUp({ email: phoneOrEmail, password });
+      } else {
+        message.error('请输入有效的手机号或邮箱');
+        setLoading(false);
+        return;
+      }
+      if (result.error) {
+        // 检查是否是手机号注册被禁用的错误
+        if (result.error.message && result.error.message.includes("disabled")) {
+          console.log("Supabase手机号注册被禁用，使用本地注册");
+          // 保存到本地存储
           saveRegisteredUser({
             name: values.name,
             position: values.position,
@@ -130,28 +128,21 @@ const LoginPage: React.FC = () => {
           });
           setRegisterModalVisible(false);
           registerForm.resetFields();
-          message.success('注册成功！请登录');
+          message.success("注册成功！请登录");
         } else {
-          setRegisterModalVisible(false);
-          registerForm.resetFields();
-          message.success('注册成功！请登录');
+          message.error(result.error.message || "注册失败");
         }
-      } catch (supabaseError: any) {
-        // 如果Supabase连接失败，使用本地注册
-        console.log('Supabase连接失败，使用本地注册:', supabaseError.message);
-        saveRegisteredUser({
-          name: values.name,
-          position: values.position,
-          phone: phoneOrEmail,
-          password: password,
-          createdAt: new Date().toISOString()
-        });
+      } else {
+        setRegisterModalVisible(false);
+        registerForm.resetFields();
+        message.success("注册成功！请登录");
+      }        message.error(result.error.message || '注册失败');
+      } else {
         setRegisterModalVisible(false);
         registerForm.resetFields();
         message.success('注册成功！请登录');
       }
     } catch (err) {
-      console.error('注册失败:', err);
       message.error('注册失败，请重试');
     } finally {
       setLoading(false);
@@ -274,8 +265,8 @@ const LoginPage: React.FC = () => {
           onFinish={onFinish}
           layout="vertical"
         >
-          <Form.Item name="username" label="邮箱地址" rules={[{ required: true, message: '请输入邮箱地址' }]}> 
-            <Input prefix={<UserOutlined />} placeholder="请输入邮箱地址" autoComplete="username" />
+          <Form.Item name="username" label="用户名/手机号" rules={[{ required: true, message: '请输入用户名或手机号' }]}> 
+            <Input prefix={<UserOutlined />} placeholder="用户名或手机号" autoComplete="username" />
           </Form.Item>
           <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }]}> 
             <Input.Password prefix={<LockOutlined />} placeholder="密码" autoComplete="current-password" />
@@ -331,7 +322,7 @@ const LoginPage: React.FC = () => {
           <Form.Item name="position" label="职位" rules={[{ required: true, message: '请输入职位' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱' }, { type: 'email', message: '请输入有效的邮箱地址' }]}>
+          <Form.Item name="phone" label="电话" rules={[{ required: true, message: '请输入电话' }, { pattern: /^1\d{10}$/, message: '请输入有效手机号' }]}>
             <Input />
           </Form.Item>
           <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }, { min: 6, max: 12, message: '密码长度需为6-12位' }, { validator: (_, value) => { if (!value) return Promise.resolve(); if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,12}$/.test(value)) { return Promise.reject('密码需包含字母和数字，且为6-12位'); } return Promise.resolve(); } }]}>
@@ -370,7 +361,7 @@ const LoginPage: React.FC = () => {
           layout="vertical"
           onFinish={handleResetPwd}
         >
-          <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱' }, { type: 'email', message: '请输入有效的邮箱地址' }]}>
+          <Form.Item name="phone" label="电话" rules={[{ required: true, message: '请输入电话' }, { pattern: /^1\d{10}$/, message: '请输入有效手机号' }]}>
             <Input />
           </Form.Item>
           <Form.Item name="code" label="验证码" rules={[{ required: true, message: '请输入验证码' }]}>

@@ -12,17 +12,19 @@ export default defineConfig({
   routes: [
     {
       path: '/',
-      redirect: '/home',
-    },
-    {
-      name: '首页',
-      path: '/home',
-      component: './Home',
+      component: './Landing',
+      layout: false, // 主站页面不使用布局
     },
     {
       name: '登录',
       path: '/login',
       component: './Login',
+      layout: false, // 登录页不使用布局
+    },
+    {
+      name: '首页',
+      path: '/home',
+      component: './Home',
     },
     {
       name: '志愿者管理',
@@ -64,12 +66,17 @@ export default defineConfig({
       path: '/statistics',
       component: './Statistics',
     },
+    {
+      name: '积分管理',
+      path: '/score',
+      component: './Score',
+    },
   ],
   npmClient: 'npm',
   esbuildMinifyIIFE: true,
   mfsu: false,
   hash: true,
-  publicPath: './',
+  publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
   targets: {
     chrome: 80,
     firefox: 80,
