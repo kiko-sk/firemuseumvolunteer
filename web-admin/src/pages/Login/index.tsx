@@ -106,8 +106,7 @@ const LoginPage: React.FC = () => {
         setLoading(false);
         return;
       }
-      let result;
-      result = await supabase.auth.signUp({ email, password });
+      let result = await supabase.auth.signUp({ email, password });
       if (result.error) {
         // Supabase注册失败，使用本地注册
         saveRegisteredUser({
@@ -164,7 +163,7 @@ const LoginPage: React.FC = () => {
           message.success('登录成功');
           navigate('/home');
         } else {
-          message.error(result.error.message || '用户名或密码错误');
+          message.error(result.error.message || '邮箱或密码错误');
         }
         return;
       }
@@ -187,34 +186,21 @@ const LoginPage: React.FC = () => {
 
   const handleResetPwd = async (values: any) => {
     try {
-      console.log('重置密码信息:', values);
-      
-      // 验证验证码
-      if (!verifySMSCode(values.phone, values.code)) {
-        message.error('验证码错误或已过期');
-        return;
-      }
-      
       // 检查用户是否存在
       const users = getRegisteredUsers();
-      const userIndex = users.findIndex((u: any) => u.phone === values.phone);
-      
+      const userIndex = users.findIndex((u: any) => u.email === values.email);
       if (userIndex >= 0) {
         // 更新用户密码
         users[userIndex].password = values.newPassword;
         localStorage.setItem('registeredUsers', JSON.stringify(users));
-        
-        // 清除验证码
-        clearSMSCode(values.phone);
-        
-      setResetModalVisible(false);
+        setResetModalVisible(false);
         resetForm.resetFields();
+        setResetCountdown(0);
         message.success('密码重置成功！请使用新密码登录');
       } else {
-        message.error('该手机号未注册，请先注册');
+        message.error('该邮箱未注册，请先注册');
       }
     } catch (err) {
-      console.error('重置失败:', err);
       message.error('重置失败，请重试');
     }
   };

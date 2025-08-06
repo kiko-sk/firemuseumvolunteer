@@ -1,25 +1,15 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "web-admin/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "web-admin/dist"
-      }
-    }
-  ],
+  "buildCommand": "cd web-admin && npm install && npm run build",
+  "outputDirectory": "web-admin/dist",
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/web-admin/dist/static/$1"
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/web-admin/dist/index.html"
+      "dest": "/index.html"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 } 
