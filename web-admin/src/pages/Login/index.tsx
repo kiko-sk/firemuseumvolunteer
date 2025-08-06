@@ -99,59 +99,33 @@ const LoginPage: React.FC = () => {
   const handleRegister = async (values: any) => {
     try {
       setLoading(true);
-      // 只支持手机号或邮箱注册
-      const phoneOrEmail = values.phone;
+      const email = values.email;
       const password = values.password;
-      
-      // 先尝试Supabase注册
+      if (!/^[\w.-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(email)) {
+        message.error('请输入有效的邮箱地址');
+        setLoading(false);
+        return;
+      }
       let result;
-      try {
-        if (/^1\d{10}$/.test(phoneOrEmail)) {
-          // 手机号注册
-          result = await supabase.auth.signUp({ phone: phoneOrEmail, password });
-        } else if (/^[\w.-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(phoneOrEmail)) {
-          // 邮箱注册
-          result = await supabase.auth.signUp({ email: phoneOrEmail, password });
-        } else {
-          message.error('请输入有效的手机号或邮箱');
-          setLoading(false);
-          return;
-        }
-        
-        if (result.error) {
-          // 如果Supabase注册失败，使用本地注册
-          console.log('Supabase注册失败，使用本地注册:', result.error.message);
-          saveRegisteredUser({
-            name: values.name,
-            position: values.position,
-            phone: phoneOrEmail,
-            password: password,
-            createdAt: new Date().toISOString()
-          });
-          setRegisterModalVisible(false);
-          registerForm.resetFields();
-          message.success('注册成功！请登录');
-        } else {
-          setRegisterModalVisible(false);
-          registerForm.resetFields();
-          message.success('注册成功！请登录');
-        }
-      } catch (supabaseError: any) {
-        // 如果Supabase连接失败，使用本地注册
-        console.log('Supabase连接失败，使用本地注册:', supabaseError.message);
+      result = await supabase.auth.signUp({ email, password });
+      if (result.error) {
+        // Supabase注册失败，使用本地注册
         saveRegisteredUser({
           name: values.name,
           position: values.position,
-          phone: phoneOrEmail,
+          email: email,
           password: password,
           createdAt: new Date().toISOString()
         });
         setRegisterModalVisible(false);
         registerForm.resetFields();
         message.success('注册成功！请登录');
+        return;
       }
+      setRegisterModalVisible(false);
+      registerForm.resetFields();
+      message.success('注册成功！请登录');
     } catch (err) {
-      console.error('注册失败:', err);
       message.error('注册失败，请重试');
     } finally {
       setLoading(false);
@@ -162,63 +136,48 @@ const LoginPage: React.FC = () => {
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
-      // 支持test/123456本地管理员账号
       if (values.username === 'test' && values.password === '123456') {
         localStorage.setItem('token', 'mock-token');
         localStorage.setItem('currentUser', JSON.stringify({
           name: '测试用户',
-          phone: 'test',
+          email: 'test',
           position: '管理员'
         }));
         message.success('登录成功');
         navigate('/home');
         return;
       }
-      // Supabase登录
       let result;
-      if (/^1\d{10}$/.test(values.username)) {
-        result = await supabase.auth.signInWithPassword({ phone: values.username, password: values.password });
-      } else if (/^[\w.-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(values.username)) {
+      if (/^[\w.-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(values.username)) {
         result = await supabase.auth.signInWithPassword({ email: values.username, password: values.password });
       } else {
-        message.error('请输入有效的手机号或邮箱');
+        message.error('请输入有效的邮箱地址');
         return;
       }
       if (result.error) {
-        // 检查是否是手机号注册被禁用的错误
-        if (result.error.message && result.error.message.includes("disabled")) {
-          console.log("Supabase手机号注册被禁用，使用本地注册");
-          // 保存到本地存储
-          saveRegisteredUser({
-            name: values.name,
-            position: values.position,
-            phone: phoneOrEmail,
-            password: password,
-            createdAt: new Date().toISOString()
-          });
-          setRegisterModalVisible(false);
-          registerForm.resetFields();
-          message.success("注册成功！请登录");
+        // Supabase登录失败，尝试本地登录
+        const users = getRegisteredUsers();
+        const user = users.find((u: any) => u.email === values.username && u.password === values.password);
+        if (user) {
+          localStorage.setItem('token', 'mock-token');
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          message.success('登录成功');
+          navigate('/home');
         } else {
-          message.error(result.error.message || "注册失败");
+          message.error(result.error.message || '用户名或密码错误');
         }
-      } else {
-        setRegisterModalVisible(false);
-        registerForm.resetFields();
-        message.success("注册成功！请登录");
-      }        message.error(result.error.message || '用户名或密码错误');
-      } else {
-        // 登录成功，写入localStorage
-        const user = result.data.user;
-        localStorage.setItem('token', result.data.session?.access_token || '');
-        localStorage.setItem('currentUser', JSON.stringify({
-          name: user.user_metadata?.name || user.phone || user.email,
-          phone: user.phone || user.email,
-          position: user.user_metadata?.position || ''
-        }));
-        message.success('登录成功');
-        navigate('/home');
+        return;
       }
+      // 登录成功，写入localStorage
+      const user = result.data.user;
+      localStorage.setItem('token', result.data.session?.access_token || '');
+      localStorage.setItem('currentUser', JSON.stringify({
+        name: user.user_metadata?.name || user.email,
+        email: user.email,
+        position: user.user_metadata?.position || ''
+      }));
+      message.success('登录成功');
+      navigate('/home');
     } catch (err) {
       message.error('登录失败，请重试');
     } finally {
@@ -274,7 +233,7 @@ const LoginPage: React.FC = () => {
           onFinish={onFinish}
           layout="vertical"
         >
-          <Form.Item name="username" label="邮箱地址" rules={[{ required: true, message: '请输入邮箱地址' }]}> 
+          <Form.Item name="username" label="邮箱地址" rules={[{ required: true, message: '请输入邮箱地址' }, { type: 'email', message: '请输入有效的邮箱地址' }]}> 
             <Input prefix={<UserOutlined />} placeholder="请输入邮箱地址" autoComplete="username" />
           </Form.Item>
           <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }]}> 
