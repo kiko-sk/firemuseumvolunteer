@@ -80,7 +80,7 @@ interface VolunteerData {
   remainingscor: number; // 剩余积分 = 总积分 - 已兑换积分
   status: 'active' | 'inactive' | 'need_review';
   registerdate: string;
-  lastservicedat: string;
+  lastservicedate: string;
   remark: string; // 备注
 }
 
@@ -697,7 +697,7 @@ const VolunteerPage: React.FC = () => {
                 remainingscor: parseInt(getColumnValue('剩余积分')) || 0,
                 status: autoStatus, // 使用自动判定的状态
                 registerdate: dayjs().format('YYYY-MM-DD'),
-                lastservicedat: lastServiceDate,
+                lastservicedate: lastServiceDate,
                 remark: getColumnValue('备注') || ''
               } as any; // 临时使用any类型避免类型检查错误
 
@@ -811,7 +811,7 @@ const VolunteerPage: React.FC = () => {
         try {
           const updatedData = volunteers.map(volunteer => ({
             ...volunteer,
-            status: determineStatusByServiceHours(volunteer.serviceHours2025, volunteer.lastservicedat)
+            status: determineStatusByServiceHours(volunteer.serviceHours2025, volunteer.lastservicedate)
           }));
           
           if (isLocalAdmin()) {
