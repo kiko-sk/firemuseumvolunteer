@@ -75,14 +75,14 @@ interface VolunteerData {
   serviceScore: number; // 服务积分
   explainScore: number;
   bonusScore: number; // 附加积分
-  accumulatedScore: number; // 累计获得积分
-  totalScore: number; // 当前总积分 = 服务积分 + 讲解积分 + 附加积分
-  redeemedScore: number; // 已兑换积分
-  remainingScore: number; // 剩余积分 = 总积分 - 已兑换积分
-  lastExplainDate: string;
+  accumulateds: number; // 累计获得积分
+  totalscore: number; // 当前总积分 = 服务积分 + 讲解积分 + 附加积分
+  redeemedscor: number; // 已兑换积分
+  remainingscor: number; // 剩余积分 = 总积分 - 已兑换积分
+  lastexplaindat: string;
   status: 'active' | 'inactive' | 'need_review';
-  registerDate: string;
-  lastServiceDate: string;
+  registerdate: string;
+  lastservicedat: string;
   remark: string; // 备注
 }
 
@@ -252,7 +252,7 @@ const VolunteerPage: React.FC = () => {
     // 时间筛选逻辑
     let matchesTime = true;
     if (timeRange && timeRange[0] && timeRange[1]) {
-      const volunteerDate = dayjs(volunteer.registerDate);
+      const volunteerDate = dayjs(volunteer.registerdate);
       const startDate = timeRange[0];
       const endDate = timeRange[1];
       matchesTime = volunteerDate.isAfter(startDate.subtract(1, 'day')) && volunteerDate.isBefore(endDate.add(1, 'day'));
@@ -266,7 +266,7 @@ const VolunteerPage: React.FC = () => {
     total: volunteers.length,
     active: volunteers.filter(v => v.status === 'active').length,
     needReview: volunteers.filter(v => v.status === 'need_review').length,
-    totalScore: volunteers.reduce((sum, v) => sum + v.totalScore, 0)
+    totalScore: volunteers.reduce((sum, v) => sum + v.totalscore, 0)
   };
 
   // 检查是否需要重新考核
@@ -366,22 +366,22 @@ const VolunteerPage: React.FC = () => {
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>累计获得积分</div>,
-      dataIndex: 'accumulatedScore',
-      key: 'accumulatedScore',
+      dataIndex: 'accumulateds',
+      key: 'accumulateds',
       width: 100,
       render: (text) => <span>{text}</span>
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>已兑换积分</div>,
-      dataIndex: 'redeemedScore',
-      key: 'redeemedScore',
+      dataIndex: 'redeemedscor',
+      key: 'redeemedscor',
       width: 80,
       render: (text) => <span>{text}</span>
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>剩余积分</div>,
-      dataIndex: 'remainingScore',
-      key: 'remainingScore',
+      dataIndex: 'remainingscor',
+      key: 'remainingscor',
       width: 80,
       render: (text) => <span>{text}</span>
     },
@@ -433,7 +433,7 @@ const VolunteerPage: React.FC = () => {
       phone: '', // 新增电话
       serviceCount: 0, // 新增服务次数
       serviceHours2025: 0, // 新增服务时长2025
-      accumulatedScore: 0, // 新增累计获得积分
+      accumulateds: 0, // 新增累计获得积分
       remark: ''
     });
     setModalVisible(true);
@@ -447,7 +447,7 @@ const VolunteerPage: React.FC = () => {
     // 处理日期字段，将字符串转换为dayjs对象
     const formData = {
       ...volunteer,
-      lastExplainDate: volunteer.lastExplainDate ? dayjs(volunteer.lastExplainDate) : null
+      lastexplaindat: volunteer.lastexplaindat ? dayjs(volunteer.lastexplaindat) : null
     };
     form.setFieldsValue(formData);
     setModalVisible(true);
@@ -815,7 +815,7 @@ const VolunteerPage: React.FC = () => {
         try {
           const updatedData = volunteers.map(volunteer => ({
             ...volunteer,
-            status: determineStatusByServiceHours(volunteer.serviceHours2025, volunteer.lastServiceDate)
+            status: determineStatusByServiceHours(volunteer.serviceHours2025, volunteer.lastservicedat)
           }));
           
           if (isLocalAdmin()) {
@@ -894,14 +894,38 @@ const VolunteerPage: React.FC = () => {
                 serviceScore: 100,
                 explainScore: 0,
                 bonusScore: 20,
-                accumulatedScore: 120,
-                totalScore: 120,
-                redeemedScore: 30,
-                remainingScore: 90,
-                lastExplainDate: '',
+                accumulateds: 120,
+                totalscore: 120,
+                redeemedscor: 30,
+                remainingscor: 90,
+                lastexplaindat: '',
                 status: 'active' as const,
-                registerDate: '2024-01-01',
-                lastServiceDate: '2025-01-15',
+                registerdate: '2024-01-01',
+                lastservicedat: '2025-01-15',
+                remark: '示例数据'
+              },
+              {
+                id: '2',
+                volunteerNo: 'V002',
+                name: '李四',
+                phone: '13800138002',
+                gender: '女',
+                age: 28,
+                type: '讲解服务',
+                serviceCount: 15,
+                serviceHours: 120,
+                serviceHours2025: 30,
+                serviceScore: 80,
+                explainScore: 0,
+                bonusScore: 20,
+                accumulateds: 120,
+                totalscore: 120,
+                redeemedscor: 30,
+                remainingscor: 90,
+                lastexplaindat: '',
+                status: 'active',
+                registerdate: '2024-01-01',
+                lastservicedat: '2025-01-15',
                 remark: '示例数据'
               }
             ];
@@ -930,14 +954,38 @@ const VolunteerPage: React.FC = () => {
                 serviceScore: 100,
                 explainScore: 0,
                 bonusScore: 20,
-                accumulatedScore: 120,
-                totalScore: 120,
-                redeemedScore: 30,
-                remainingScore: 90,
-                lastExplainDate: '',
+                accumulateds: 120,
+                totalscore: 120,
+                redeemedscor: 30,
+                remainingscor: 90,
+                lastexplaindat: '',
                 status: 'active' as const,
-                registerDate: '2024-01-01',
-                lastServiceDate: '2025-01-15',
+                registerdate: '2024-01-01',
+                lastservicedat: '2025-01-15',
+                remark: '示例数据'
+              },
+              {
+                id: '2',
+                volunteerNo: 'V002',
+                name: '李四',
+                phone: '13800138002',
+                gender: '女',
+                age: 28,
+                type: '讲解服务',
+                serviceCount: 15,
+                serviceHours: 120,
+                serviceHours2025: 30,
+                serviceScore: 80,
+                explainScore: 0,
+                bonusScore: 20,
+                accumulateds: 120,
+                totalscore: 120,
+                redeemedscor: 30,
+                remainingscor: 90,
+                lastexplaindat: '',
+                status: 'active',
+                registerdate: '2024-01-01',
+                lastservicedat: '2025-01-15',
                 remark: '示例数据'
               }
             ];
@@ -1055,9 +1103,9 @@ const VolunteerPage: React.FC = () => {
         服务积分: v.serviceScore,
         讲解积分: v.explainScore,
         附加积分: v.bonusScore,
-        累计获得积分: v.accumulatedScore,
-        已兑换积分: v.redeemedScore,
-        剩余积分: v.remainingScore,
+        累计获得积分: v.accumulateds,
+                  已兑换积分: v.redeemedscor,
+          剩余积分: v.remainingscor,
         备注: v.remark || '',
         状态: v.status === 'active' ? '活跃' : v.status === 'inactive' ? '非活跃' : '需考核'
       }));
@@ -1186,14 +1234,14 @@ const VolunteerPage: React.FC = () => {
         serviceScore: serviceScore,
         explainScore: explainScore,
         bonusScore: bonusScore,
-        accumulatedScore: parseInt(values.accumulatedScore) || 0, // 新增累计获得积分
-        totalScore: totalScore,
-        redeemedScore: values.redeemedScore || 0,
-        remainingScore: totalScore - (values.redeemedScore || 0),
-        lastExplainDate: values.lastExplainDate ? values.lastExplainDate.format('YYYY-MM-DD') : '',
+        accumulateds: parseInt(values.accumulateds) || 0, // 新增累计获得积分
+        totalscore: totalScore,
+        redeemedscor: values.redeemedScore || 0,
+        remainingscor: totalScore - (values.redeemedScore || 0),
+        lastexplaindat: values.lastExplainDate ? values.lastExplainDate.format('YYYY-MM-DD') : '',
         status: autoStatus, // 使用自动判定的状态
-        registerDate: editingVolunteer?.registerDate || dayjs().format('YYYY-MM-DD'),
-        lastServiceDate: values.lastServiceDate || '',
+        registerdate: editingVolunteer?.registerdate || dayjs().format('YYYY-MM-DD'),
+        lastservicedat: values.lastServiceDate || '',
         remark: values.remark || ''
       };
 
@@ -1881,9 +1929,9 @@ const VolunteerPage: React.FC = () => {
           onFinish={handleSubmit}
           initialValues={editingVolunteer ? {
             ...editingVolunteer,
-            lastExplainDate: editingVolunteer.lastExplainDate ? dayjs(editingVolunteer.lastExplainDate) : null,
+            lastexplaindat: editingVolunteer.lastexplaindat ? dayjs(editingVolunteer.lastexplaindat) : null,
             serviceHours2025: editingVolunteer.serviceHours2025 || 0, // 新增服务时长2025
-            accumulatedScore: editingVolunteer.accumulatedScore || 0, // 新增累计获得积分
+            accumulateds: editingVolunteer.accumulateds || 0, // 新增累计获得积分
           } : {
             status: 'active',
             serviceHours: 0,
@@ -1893,7 +1941,7 @@ const VolunteerPage: React.FC = () => {
             phone: '', // 新增电话
             serviceCount: 0, // 新增服务次数
             serviceHours2025: 0, // 新增服务时长2025
-            accumulatedScore: 0, // 新增累计获得积分
+            accumulateds: 0, // 新增累计获得积分
             remark: ''
           }}
         >
@@ -2008,7 +2056,7 @@ const VolunteerPage: React.FC = () => {
             </Col>
             <Col span={8}>
               <Form.Item
-                name="accumulatedScore"
+                name="accumulateds"
                 label="累计获得积分"
               >
                 <InputNumber
