@@ -60,12 +60,11 @@ export async function batchAddGifts(gifts: any[]) {
       throw new Error('用户未登录');
     }
     
-    // 为每个礼品添加用户ID并剥离ID字段
+    // 为每个礼品添加用户ID，不包含ID字段让数据库自动生成
     const giftsWithUserId = gifts.map(gift => {
-      const { id, ...giftWithoutId } = gift;
-      console.log('处理礼品数据:', { original: gift, processed: { ...giftWithoutId, user_id: userId } });
+      console.log('处理礼品数据:', { original: gift, processed: { ...gift, user_id: userId } });
       return {
-        ...giftWithoutId,
+        ...gift,
         user_id: userId
       };
     });

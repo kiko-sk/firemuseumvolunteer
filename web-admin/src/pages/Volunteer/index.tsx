@@ -669,7 +669,6 @@ const VolunteerPage: React.FC = () => {
               const autoStatus = determineStatusByServiceHours(serviceHours2025, lastServiceDate);
               
               const volunteer = {
-                id: Date.now().toString() + index,
                 volunteerNo: getColumnValue('志愿者编号') || '',
                 name: getColumnValue('姓名') || '',
                 phone: getColumnValue('电话') || '',
