@@ -76,7 +76,7 @@ interface VolunteerData {
   explainScore: number;
   bonusScore: number; // 附加积分
   totalscore: number; // 当前总积分 = 服务积分 + 讲解积分 + 附加积分
-  redeemedscor: number; // 已兑换积分
+  redeemedscore: number; // 已兑换积分
   remainingscor: number; // 剩余积分 = 总积分 - 已兑换积分
   status: 'active' | 'inactive' | 'need_review';
   registerdate: string;
@@ -371,8 +371,8 @@ const VolunteerPage: React.FC = () => {
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>已兑换积分</div>,
-      dataIndex: 'redeemedscor',
-      key: 'redeemedscor',
+      dataIndex: 'redeemedscore',
+      key: 'redeemedscore',
       width: 80,
       render: (text) => <span>{text}</span>
     },
@@ -693,7 +693,7 @@ const VolunteerPage: React.FC = () => {
                 explainscore: parseInt(getColumnValue('讲解积分')) || 0,
                 bonusscore: parseInt(getColumnValue('附加积分')) || 0,
                 totalscore: parseInt(getColumnValue('当前总积分')) || 0,
-                redeemedscor: parseInt(getColumnValue('已兑换积分')) || 0,
+                redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
                 remainingscor: parseInt(getColumnValue('剩余积分')) || 0,
                 status: autoStatus, // 使用自动判定的状态
                 registerdate: dayjs().format('YYYY-MM-DD'),
@@ -1100,7 +1100,7 @@ const VolunteerPage: React.FC = () => {
         讲解积分: v.explainScore,
         附加积分: v.bonusScore,
         累计获得积分: v.accumulateds,
-                  已兑换积分: v.redeemedscor,
+                  已兑换积分: v.redeemedscore,
           剩余积分: v.remainingscor,
         备注: v.remark || '',
         状态: v.status === 'active' ? '活跃' : v.status === 'inactive' ? '非活跃' : '需考核'
@@ -1232,7 +1232,7 @@ const VolunteerPage: React.FC = () => {
         bonusScore: bonusScore,
         accumulateds: parseInt(values.accumulateds) || 0, // 新增累计获得积分
         totalscore: totalScore,
-        redeemedscor: values.redeemedScore || 0,
+        redeemedscore: values.redeemedScore || 0,
         remainingscor: totalScore - (values.redeemedScore || 0),
         lastexplaindat: values.lastExplainDate ? values.lastExplainDate.format('YYYY-MM-DD') : '',
         status: autoStatus, // 使用自动判定的状态
