@@ -735,9 +735,28 @@ const VolunteerPage: React.FC = () => {
           Modal.confirm({
             title: '确认导入',
             content: `将导入 ${validData.length} 条志愿者数据，是否继续？`,
-            onOk: () => {
-              setVolunteers(prev => [...prev, ...validData]);
-              message.success(`成功导入 ${validData.length} 条数据！`);
+            onOk: async () => {
+              try {
+                if (isLocalAdmin()) {
+                  // 本地管理员，使用localStorage
+                  const newData = [...volunteers, ...validData];
+                  setVolunteers(newData);
+                  localStorage.setItem('volunteerData', JSON.stringify(newData));
+                  message.success(`成功导入 ${validData.length} 条数据！`);
+                } else {
+                  // 普通用户，批量写入Supabase
+                  for (const volunteer of validData) {
+                    await addVolunteer(volunteer);
+                  }
+                  // 重新加载数据
+                  const data = await fetchVolunteers();
+                  setVolunteers(data || []);
+                  message.success(`成功导入 ${validData.length} 条数据！`);
+                }
+              } catch (error) {
+                console.error('批量导入失败:', error);
+                message.error('批量导入失败，请重试');
+              }
             }
           });
 
@@ -752,7 +771,7 @@ const VolunteerPage: React.FC = () => {
   };
 
   // 批量删除
-  const handleBatchDelete = () => {
+  const handleBatchDelete = async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要删除的志愿者');
       return;
@@ -760,51 +779,182 @@ const VolunteerPage: React.FC = () => {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除选中的 ${selectedRowKeys.length} 个志愿者吗？`,
-      onOk: () => {
-        setVolunteers(prev => prev.filter(v => !selectedRowKeys.includes(v.id)));
-        setSelectedRowKeys([]);
-        message.success('删除成功');
+      onOk: async () => {
+        try {
+          if (isLocalAdmin()) {
+            // 本地管理员，使用localStorage
+            const newData = volunteers.filter(v => !selectedRowKeys.includes(v.id));
+            setVolunteers(newData);
+            localStorage.setItem('volunteerData', JSON.stringify(newData));
+            setSelectedRowKeys([]);
+            message.success('删除成功');
+          } else {
+            // 普通用户，批量删除Supabase数据
+            for (const id of selectedRowKeys) {
+              await deleteVolunteer(String(id));
+            }
+            // 重新加载数据
+            const data = await fetchVolunteers();
+            setVolunteers(data || []);
+            setSelectedRowKeys([]);
+            message.success('删除成功');
+          }
+        } catch (error) {
+          console.error('批量删除失败:', error);
+          message.error('批量删除失败，请重试');
+        }
       }
     });
   };
 
   // 批量更新状态
-  const handleBatchUpdateStatus = () => {
+  const handleBatchUpdateStatus = async () => {
     Modal.confirm({
       title: '批量更新状态',
       content: '确定要根据2025年服务时长和最后服务日期重新计算所有志愿者的状态吗？',
-      onOk: () => {
-        const updatedData = volunteers.map(volunteer => ({
-          ...volunteer,
-          status: determineStatusByServiceHours(volunteer.serviceHours2025, volunteer.lastServiceDate)
-        }));
-        setVolunteers(updatedData);
-        message.success('状态更新成功');
+      onOk: async () => {
+        try {
+          const updatedData = volunteers.map(volunteer => ({
+            ...volunteer,
+            status: determineStatusByServiceHours(volunteer.serviceHours2025, volunteer.lastServiceDate)
+          }));
+          
+          if (isLocalAdmin()) {
+            // 本地管理员，使用localStorage
+            setVolunteers(updatedData);
+            localStorage.setItem('volunteerData', JSON.stringify(updatedData));
+            message.success('状态更新成功');
+          } else {
+            // 普通用户，批量更新Supabase数据
+            for (const volunteer of updatedData) {
+              await updateVolunteer(volunteer.id, volunteer);
+            }
+            // 重新加载数据
+            const data = await fetchVolunteers();
+            setVolunteers(data || []);
+            message.success('状态更新成功');
+          }
+        } catch (error) {
+          console.error('批量更新状态失败:', error);
+          message.error('批量更新状态失败，请重试');
+        }
       }
     });
   };
 
   // 清空所有数据
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
     Modal.confirm({
       title: '清空所有数据',
       content: '确定要清空所有志愿者数据吗？此操作不可恢复！',
-      onOk: () => {
-        setVolunteers([]);
-        localStorage.removeItem('volunteerData');
-        message.success('数据已清空');
+      onOk: async () => {
+        try {
+          if (isLocalAdmin()) {
+            // 本地管理员，使用localStorage
+            setVolunteers([]);
+            localStorage.removeItem('volunteerData');
+            message.success('数据已清空');
+          } else {
+            // 普通用户，清空Supabase数据
+            const data = await fetchVolunteers();
+            for (const volunteer of data || []) {
+              await deleteVolunteer(volunteer.id);
+            }
+            setVolunteers([]);
+            message.success('数据已清空');
+          }
+        } catch (error) {
+          console.error('清空数据失败:', error);
+          message.error('清空数据失败，请重试');
+        }
       }
     });
   };
 
   // 重置为默认数据
-  const handleResetToDefault = () => {
+  const handleResetToDefault = async () => {
     Modal.confirm({
       title: '重置为默认数据',
       content: '确定要重置为默认的示例数据吗？当前数据将被覆盖！',
-      onOk: () => {
-        loadDefaultData();
-        message.success('已重置为默认数据');
+      onOk: async () => {
+        try {
+          if (isLocalAdmin()) {
+            // 本地管理员，使用localStorage
+            const defaultData = [
+              {
+                id: '1',
+                volunteerNo: 'V001',
+                name: '张三',
+                phone: '13800138001',
+                gender: '男',
+                age: 25,
+                type: '场馆服务' as const,
+                serviceCount: 10,
+                serviceHours: 50,
+                serviceHours2025: 20,
+                serviceScore: 100,
+                explainScore: 0,
+                bonusScore: 20,
+                accumulatedScore: 120,
+                totalScore: 120,
+                redeemedScore: 30,
+                remainingScore: 90,
+                lastExplainDate: '',
+                status: 'active' as const,
+                registerDate: '2024-01-01',
+                lastServiceDate: '2025-01-15',
+                remark: '示例数据'
+              }
+            ];
+            setVolunteers(defaultData);
+            localStorage.setItem('volunteerData', JSON.stringify(defaultData));
+            message.success('已重置为默认数据');
+          } else {
+            // 普通用户，先清空再添加默认数据
+            const data = await fetchVolunteers();
+            for (const volunteer of data || []) {
+              await deleteVolunteer(volunteer.id);
+            }
+            
+            const defaultData = [
+              {
+                id: '1',
+                volunteerNo: 'V001',
+                name: '张三',
+                phone: '13800138001',
+                gender: '男',
+                age: 25,
+                type: '场馆服务' as const,
+                serviceCount: 10,
+                serviceHours: 50,
+                serviceHours2025: 20,
+                serviceScore: 100,
+                explainScore: 0,
+                bonusScore: 20,
+                accumulatedScore: 120,
+                totalScore: 120,
+                redeemedScore: 30,
+                remainingScore: 90,
+                lastExplainDate: '',
+                status: 'active' as const,
+                registerDate: '2024-01-01',
+                lastServiceDate: '2025-01-15',
+                remark: '示例数据'
+              }
+            ];
+            
+            for (const volunteer of defaultData) {
+              await addVolunteer(volunteer);
+            }
+            
+            const newData = await fetchVolunteers();
+            setVolunteers(newData || []);
+            message.success('已重置为默认数据');
+          }
+        } catch (error) {
+          console.error('重置数据失败:', error);
+          message.error('重置数据失败，请重试');
+        }
       }
     });
   };
@@ -840,7 +990,7 @@ const VolunteerPage: React.FC = () => {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const backupData = JSON.parse(event.target?.result as string);
           
@@ -848,9 +998,32 @@ const VolunteerPage: React.FC = () => {
             Modal.confirm({
               title: '导入数据备份',
               content: `确定要导入备份数据吗？将覆盖当前所有数据！备份时间：${dayjs(backupData.timestamp).format('YYYY-MM-DD HH:mm:ss')}`,
-              onOk: () => {
-                setVolunteers(backupData.data);
-                message.success('数据备份导入成功！');
+              onOk: async () => {
+                try {
+                  if (isLocalAdmin()) {
+                    // 本地管理员，使用localStorage
+                    setVolunteers(backupData.data);
+                    localStorage.setItem('volunteerData', JSON.stringify(backupData.data));
+                    message.success('数据备份导入成功！');
+                  } else {
+                    // 普通用户，先清空再导入到Supabase
+                    const currentData = await fetchVolunteers();
+                    for (const volunteer of currentData || []) {
+                      await deleteVolunteer(volunteer.id);
+                    }
+                    
+                    for (const volunteer of backupData.data) {
+                      await addVolunteer(volunteer);
+                    }
+                    
+                    const newData = await fetchVolunteers();
+                    setVolunteers(newData || []);
+                    message.success('数据备份导入成功！');
+                  }
+                } catch (error) {
+                  console.error('备份导入失败:', error);
+                  message.error('备份导入失败，请重试');
+                }
               }
             });
           } else {
