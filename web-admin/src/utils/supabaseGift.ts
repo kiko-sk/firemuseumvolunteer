@@ -63,6 +63,7 @@ export async function batchAddGifts(gifts: any[]) {
     // 为每个礼品添加用户ID并剥离ID字段
     const giftsWithUserId = gifts.map(gift => {
       const { id, ...giftWithoutId } = gift;
+      console.log('处理礼品数据:', { original: gift, processed: { ...giftWithoutId, user_id: userId } });
       return {
         ...giftWithoutId,
         user_id: userId

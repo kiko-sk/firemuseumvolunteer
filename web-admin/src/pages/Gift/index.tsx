@@ -254,13 +254,33 @@ const GiftPage: React.FC = () => {
   // 下载导入模板
   const handleDownloadTemplate = () => {
     const templateData = [
-      ['礼品名称', '类别', '所需积分', '库存', '描述', '状态'],
-      ['消防主题T恤', '服装', '500', '50', '印有消防主题图案的舒适T恤', '上架'],
-      ['消防知识书籍', '书籍', '300', '30', '消防安全知识普及读物', '上架'],
-      ['消防车模型', '玩具', '200', '100', '精美的消防车玩具模型', '上架']
+      {
+        礼品名称: '消防主题T恤',
+        类别: '服装',
+        所需积分: 500,
+        库存: 50,
+        描述: '印有消防主题图案的舒适T恤',
+        状态: '上架'
+      },
+      {
+        礼品名称: '消防知识书籍',
+        类别: '书籍',
+        所需积分: 300,
+        库存: 30,
+        描述: '消防安全知识普及读物',
+        状态: '上架'
+      },
+      {
+        礼品名称: '消防车模型',
+        类别: '玩具',
+        所需积分: 200,
+        库存: 100,
+        描述: '精美的消防车玩具模型',
+        状态: '上架'
+      }
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet(templateData);
+    const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '礼品导入模板');
     
@@ -370,17 +390,15 @@ const GiftPage: React.FC = () => {
               const description = getColumnValue(row, '描述') as string;
               
               // 构造 gift 对象时不包含 id 字段，交由数据库自动生成
-              // 如果 Excel 行里有 id 字段，自动忽略
-              const { id: _ignoredId, ...rowWithoutId } = row;
               const gift = {
-                name: getColumnValue(rowWithoutId, '礼品名称') as string,
-                category: getColumnValue(rowWithoutId, '类别') as string,
-                points: parseInt(getColumnValue(rowWithoutId, '所需积分', true) as string) || 0,
-                stock: parseInt(getColumnValue(rowWithoutId, '库存', true) as string) || 0,
+                name: getColumnValue(row, '礼品名称') as string,
+                category: getColumnValue(row, '类别') as string,
+                points: parseInt(getColumnValue(row, '所需积分', true) as string) || 0,
+                stock: parseInt(getColumnValue(row, '库存', true) as string) || 0,
                 exchanged: 0, // 新导入的礼品，已兑换数量为0
                 image: '', // 新导入的礼品，暂时没有图片
-                description: getColumnValue(rowWithoutId, '描述') as string,
-                status: getColumnValue(rowWithoutId, '状态') === '下架' ? 'inactive' : 'active',
+                description: getColumnValue(row, '描述') as string,
+                status: getColumnValue(row, '状态') === '下架' ? 'inactive' : 'active',
                 createTime: dayjs().format('YYYY-MM-DD'),
                 updateTime: dayjs().format('YYYY-MM-DD')
               };
@@ -393,6 +411,8 @@ const GiftPage: React.FC = () => {
               errors.push(`第${index + 1}行：数据格式错误 - ${errorMessage}`);
             }
           });
+
+          console.log('导入验证结果:', { validData, errors, skippedRows });
 
           if (errors.length > 0) {
             Modal.error({
@@ -425,6 +445,7 @@ const GiftPage: React.FC = () => {
                   setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
                 } else {
                   // 普通用户，使用批量插入API
+                  console.log('开始批量插入礼品:', validData);
                   await batchAddGifts(validData);
                   // 重新加载数据
                   const data = await fetchGifts();
@@ -433,7 +454,7 @@ const GiftPage: React.FC = () => {
                 message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
               } catch (error) {
                 console.error('批量导入失败:', error);
-                message.error('批量导入失败，请重试');
+                message.error(`批量导入失败: ${error instanceof Error ? error.message : '未知错误'}`);
               }
             }
           });
