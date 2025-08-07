@@ -15,7 +15,7 @@
     "@ant-design/icons": "^5.0.1",
     "@ant-design/pro-components": "^2.4.4",
     "@supabase/supabase-js": "^2.53.0",
-    "@umijs/max": "^4.4.11",
+    "@umijs/max": "^4.0.7",
     "@vercel/kv": "^3.0.0",
     "antd": "^5.4.0",
     "dayjs": "^1.11.13",

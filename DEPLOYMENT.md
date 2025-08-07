@@ -111,13 +111,14 @@ NODE_ENV=production
 PORT=8000
 
 # 前端环境变量
-REACT_APP_API_BASE_URL=https://your-backend.vercel.app
+REACT_APP_API_BASE_URL=https://api.fmvsh.cn
 ```
 
 ### 域名配置
-建议为生产环境配置自定义域名：
-- 后端API: `api.firemuseum.com`
-- Web管理端: `admin.firemuseum.com`
+已配置正式域名：
+- **主域名**: `https://fmvsh.cn/`
+- **后端API**: `https://api.fmvsh.cn`
+- **Web管理端**: `https://admin.fmvsh.cn`
 
 ---
 
@@ -173,8 +174,9 @@ REACT_APP_API_BASE_URL=https://your-backend.vercel.app
 
 恭喜！你的消防博物馆志愿者系统已成功上线：
 
-- **后端API**: https://your-backend.vercel.app
-- **Web管理端**: https://your-admin.vercel.app  
+- **主域名**: https://fmvsh.cn/
+- **后端API**: https://api.fmvsh.cn
+- **Web管理端**: https://admin.fmvsh.cn
 - **移动端App**: 应用商店搜索"消防博物馆志愿者"
 
 记得定期更新和维护系统！ 

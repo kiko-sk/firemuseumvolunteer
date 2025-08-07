@@ -7,6 +7,11 @@ const getBaseURL = () => {
   if (process.env.EXPO_PUBLIC_API_BASE_URL) {
     return process.env.EXPO_PUBLIC_API_BASE_URL;
   }
+  // 生产环境域名
+  if (__DEV__ === false) {
+    return 'https://api.fmvsh.cn';
+  }
+  // 开发环境
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:8000';
   } else {
