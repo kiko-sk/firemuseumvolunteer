@@ -78,7 +78,6 @@ interface VolunteerData {
   totalscore: number; // 当前总积分 = 服务积分 + 讲解积分 + 附加积分
   redeemedscor: number; // 已兑换积分
   remainingscor: number; // 剩余积分 = 总积分 - 已兑换积分
-  lastexplaindat: string;
   status: 'active' | 'inactive' | 'need_review';
   registerdate: string;
   lastservicedat: string;
@@ -696,7 +695,6 @@ const VolunteerPage: React.FC = () => {
                 totalscore: parseInt(getColumnValue('当前总积分')) || 0,
                 redeemedscor: parseInt(getColumnValue('已兑换积分')) || 0,
                 remainingscor: parseInt(getColumnValue('剩余积分')) || 0,
-                lastexplaindat: '',
                 status: autoStatus, // 使用自动判定的状态
                 registerdate: dayjs().format('YYYY-MM-DD'),
                 lastservicedat: lastServiceDate,
