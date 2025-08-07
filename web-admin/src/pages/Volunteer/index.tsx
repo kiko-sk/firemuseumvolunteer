@@ -75,7 +75,6 @@ interface VolunteerData {
   serviceScore: number; // 服务积分
   explainScore: number;
   bonusScore: number; // 附加积分
-  accumulateds: number; // 累计获得积分
   totalscore: number; // 当前总积分 = 服务积分 + 讲解积分 + 附加积分
   redeemedscor: number; // 已兑换积分
   remainingscor: number; // 剩余积分 = 总积分 - 已兑换积分
@@ -694,7 +693,6 @@ const VolunteerPage: React.FC = () => {
                 servicescore: parseInt(getColumnValue('服务积分')) || 0,
                 explainscore: parseInt(getColumnValue('讲解积分')) || 0,
                 bonusscore: parseInt(getColumnValue('附加积分')) || 0,
-                accumulateds: parseInt(getColumnValue('累计获得积分')) || 0,
                 totalscore: parseInt(getColumnValue('当前总积分')) || 0,
                 redeemedscor: parseInt(getColumnValue('已兑换积分')) || 0,
                 remainingscor: parseInt(getColumnValue('剩余积分')) || 0,
