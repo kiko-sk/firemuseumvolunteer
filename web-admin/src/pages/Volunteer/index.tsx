@@ -53,7 +53,7 @@ import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { cloudSync } from '../../utils/cloudSync';
-import { fetchVolunteers, addVolunteer, updateVolunteer, deleteVolunteer } from '../../utils/supabaseVolunteer';
+import { fetchVolunteers, addVolunteer, updateVolunteer, deleteVolunteer, batchDeleteVolunteers, batchAddVolunteers, clearAllVolunteers } from '../../utils/supabaseVolunteer';
 import { testSupabaseConnection } from '../../utils/supabaseClient';
 
 const { Option } = Select;
@@ -572,11 +572,6 @@ const VolunteerPage: React.FC = () => {
 
           let skippedRows = 0; // 统计跳过的空行数量
           
-          // 调试：打印所有列名
-          if (jsonData.length > 0) {
-            console.log('Excel表格的列名:', Object.keys(jsonData[0] as object));
-          }
-          
           // 创建列名映射，处理可能的格式问题
           const createColumnMapping = (row: any) => {
             const mapping: { [key: string]: string } = {};
@@ -588,13 +583,9 @@ const VolunteerPage: React.FC = () => {
           };
           
           const columnMapping = jsonData.length > 0 ? createColumnMapping(jsonData[0]) : {};
-          console.log('列名映射:', columnMapping);
           
           jsonData.forEach((row: any, index: number) => {
             try {
-              // 调试信息
-              console.log(`处理第${index + 1}行数据:`, row);
-              console.log(`第${index + 1}行的所有字段:`, Object.keys(row));
               
               // 处理空值：将所有空值、null、undefined转换为空字符串或0
               const safeRow = Object.keys(row).reduce((acc, key) => {
@@ -728,7 +719,7 @@ const VolunteerPage: React.FC = () => {
           // 确认导入
           Modal.confirm({
             title: '确认导入',
-            content: `将导入 ${validData.length} 条志愿者数据，是否继续？`,
+            content: `将导入 ${validData.length} 条志愿者数据，跳过 ${skippedRows} 条空行，是否继续？`,
             onOk: async () => {
               try {
                 if (isLocalAdmin()) {
@@ -736,16 +727,14 @@ const VolunteerPage: React.FC = () => {
                   const newData = [...volunteers, ...validData];
                   setVolunteers(newData);
                   localStorage.setItem('volunteerData', JSON.stringify(newData));
-                  message.success(`成功导入 ${validData.length} 条数据！`);
+                  message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
                 } else {
-                  // 普通用户，批量写入Supabase
-                  for (const volunteer of validData) {
-                    await addVolunteer(volunteer);
-                  }
+                  // 普通用户，使用批量插入API
+                  await batchAddVolunteers(validData);
                   // 重新加载数据
                   const data = await fetchVolunteers();
                   setVolunteers(data || []);
-                  message.success(`成功导入 ${validData.length} 条数据！`);
+                  message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
                 }
               } catch (error) {
                 console.error('批量导入失败:', error);
@@ -783,10 +772,8 @@ const VolunteerPage: React.FC = () => {
             setSelectedRowKeys([]);
             message.success('删除成功');
           } else {
-            // 普通用户，批量删除Supabase数据
-            for (const id of selectedRowKeys) {
-              await deleteVolunteer(String(id));
-            }
+            // 普通用户，使用批量删除API
+            await batchDeleteVolunteers(selectedRowKeys.map(String));
             // 重新加载数据
             const data = await fetchVolunteers();
             setVolunteers(data || []);
@@ -849,11 +836,8 @@ const VolunteerPage: React.FC = () => {
             localStorage.removeItem('volunteerData');
             message.success('数据已清空');
           } else {
-            // 普通用户，清空Supabase数据
-            const data = await fetchVolunteers();
-            for (const volunteer of data || []) {
-              await deleteVolunteer(volunteer.id);
-            }
+            // 普通用户，使用批量清空API
+            await clearAllVolunteers();
             setVolunteers([]);
             message.success('数据已清空');
           }

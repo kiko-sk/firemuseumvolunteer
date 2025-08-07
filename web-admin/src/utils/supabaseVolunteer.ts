@@ -120,4 +120,85 @@ export async function deleteVolunteer(id: string) {
     console.error('deleteVolunteer - 异常:', error);
     throw error;
   }
+}
+
+// 批量删除志愿者
+export async function batchDeleteVolunteers(ids: string[]) {
+  try {
+    const userId = await getCurrentUserId();
+    console.log('batchDeleteVolunteers - userId:', userId, 'ids:', ids);
+    
+    if (!userId) {
+      throw new Error('用户未登录');
+    }
+    
+    const { data, error } = await supabase
+      .from('volunteers')
+      .delete()
+      .in('id', ids)
+      .eq('user_id', userId);
+    
+    console.log('batchDeleteVolunteers - 批量删除结果:', { data, error });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('batchDeleteVolunteers - 异常:', error);
+    throw error;
+  }
+}
+
+// 批量插入志愿者
+export async function batchAddVolunteers(volunteers: any[]) {
+  try {
+    const userId = await getCurrentUserId();
+    console.log('batchAddVolunteers - userId:', userId, 'count:', volunteers.length);
+    
+    if (!userId) {
+      throw new Error('用户未登录');
+    }
+    
+    // 为每个志愿者添加用户ID
+    const volunteersWithUserId = volunteers.map(volunteer => ({
+      ...volunteer,
+      user_id: userId
+    }));
+    
+    const { data, error } = await supabase
+      .from('volunteers')
+      .insert(volunteersWithUserId);
+    
+    console.log('batchAddVolunteers - 批量插入结果:', { data, error });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('batchAddVolunteers - 异常:', error);
+    throw error;
+  }
+}
+
+// 清空所有志愿者数据
+export async function clearAllVolunteers() {
+  try {
+    const userId = await getCurrentUserId();
+    console.log('clearAllVolunteers - userId:', userId);
+    
+    if (!userId) {
+      throw new Error('用户未登录');
+    }
+    
+    const { data, error } = await supabase
+      .from('volunteers')
+      .delete()
+      .eq('user_id', userId);
+    
+    console.log('clearAllVolunteers - 清空结果:', { data, error });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('clearAllVolunteers - 异常:', error);
+    throw error;
+  }
 } 

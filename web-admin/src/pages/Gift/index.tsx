@@ -41,7 +41,7 @@ import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { fetchGifts, addGift, updateGift, deleteGift } from '../../utils/supabaseGift';
+import { fetchGifts, addGift, updateGift, deleteGift, batchAddGifts, batchDeleteGifts, clearAllGifts } from '../../utils/supabaseGift';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -317,9 +317,6 @@ const GiftPage: React.FC = () => {
           
           jsonData.forEach((row: any, index: number) => {
             try {
-              // 调试信息
-              console.log(`处理第${index + 1}行数据:`, row);
-              console.log(`第${index + 1}行的所有字段:`, Object.keys(row));
               
               // 检查是否为完全空行（所有字段都为空）
               const allFieldsEmpty = Object.values(row).every(value => 
@@ -427,12 +424,8 @@ const GiftPage: React.FC = () => {
                   localStorage.setItem('giftData', JSON.stringify(newData));
                   setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
                 } else {
-                  // 普通用户，批量写入Supabase
-                  for (const gift of validData) {
-                    // 再保险：addGift 前剥离 id 字段
-                    const { id: _id, ...giftWithoutId } = gift;
-                    await addGift(giftWithoutId);
-                  }
+                  // 普通用户，使用批量插入API
+                  await batchAddGifts(validData);
                   // 重新加载数据
                   const data = await fetchGifts();
                   setGifts(data || []);
@@ -573,10 +566,8 @@ const GiftPage: React.FC = () => {
             localStorage.setItem('giftData', JSON.stringify(newData));
             setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
           } else {
-            // 普通用户，批量删除Supabase数据
-            for (const id of selectedRowKeys) {
-              await deleteGift(id as string);
-            }
+            // 普通用户，使用批量删除API
+            await batchDeleteGifts(selectedRowKeys.map(String));
             // 重新加载数据
             const data = await fetchGifts();
             setGifts(data || []);
