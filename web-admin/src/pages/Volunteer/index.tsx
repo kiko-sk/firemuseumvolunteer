@@ -364,8 +364,8 @@ const VolunteerPage: React.FC = () => {
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>累计获得积分</div>,
-      dataIndex: 'accumulateds',
-      key: 'accumulateds',
+      dataIndex: 'totalscore',
+      key: 'totalscore',
       width: 100,
       render: (text) => <span>{text}</span>
     },
@@ -481,7 +481,6 @@ const VolunteerPage: React.FC = () => {
           讲解积分: 8,
           附加积分: 2,
           累计获得积分: 15,
-          总积分: 17,
           已兑换积分: 5,
           剩余积分: 12,
           备注: '表现优秀，积极参与活动'
@@ -500,7 +499,6 @@ const VolunteerPage: React.FC = () => {
           讲解积分: 0,
           附加积分: 0,
           累计获得积分: 6,
-          总积分: 6,
           已兑换积分: 0,
           剩余积分: 6,
           备注: '需要重新考核讲解技能'
@@ -680,26 +678,27 @@ const VolunteerPage: React.FC = () => {
               const autoStatus = determineStatusByServiceHours(serviceHours2025, lastServiceDate);
               
               const volunteer = {
-                volunteerno: getColumnValue('志愿者编号') || '',
+                id: Date.now().toString() + index,
+                volunteerNo: getColumnValue('志愿者编号') || '',
                 name: getColumnValue('姓名') || '',
                 phone: getColumnValue('电话') || '',
                 gender: getColumnValue('性别') || '',
                 age: parseInt(getColumnValue('年龄')) || 0,
-                type: getColumnValue('类型') || '场馆服务',
-                servicecount: parseInt(getColumnValue('服务次数')) || 0,
-                servicehours: parseInt(getColumnValue('总服务时长')) || 0,
-                servicehours2: parseInt(getColumnValue('服务时长2025')) || 0,
-                servicescore: parseInt(getColumnValue('服务积分')) || 0,
-                explainscore: parseInt(getColumnValue('讲解积分')) || 0,
-                bonusscore: parseInt(getColumnValue('附加积分')) || 0,
-                totalscore: parseInt(getColumnValue('当前总积分')) || 0,
+                type: getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务',
+                serviceCount: parseInt(getColumnValue('服务次数')) || 0,
+                serviceHours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
+                serviceHours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
+                serviceScore: parseInt(getColumnValue('服务积分')) || 0,
+                explainScore: parseInt(getColumnValue('讲解积分')) || 0,
+                bonusScore: parseInt(getColumnValue('附加积分')) || 0,
+                totalscore: parseInt(getColumnValue('累计获得积分')) || 0,
                 redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
                 remainingscore: parseInt(getColumnValue('剩余积分')) || 0,
                 status: autoStatus, // 使用自动判定的状态
                 registerdate: dayjs().format('YYYY-MM-DD'),
                 lastservicedate: lastServiceDate,
                 remark: getColumnValue('备注') || ''
-              } as any; // 临时使用any类型避免类型检查错误
+              } as VolunteerData;
 
               validData.push(volunteer);
             } catch (error) {
@@ -1099,7 +1098,7 @@ const VolunteerPage: React.FC = () => {
         服务积分: v.serviceScore,
         讲解积分: v.explainScore,
         附加积分: v.bonusScore,
-        累计获得积分: v.accumulateds,
+        累计获得积分: v.totalscore,
                   已兑换积分: v.redeemedscore,
           剩余积分: v.remainingscore,
         备注: v.remark || '',
