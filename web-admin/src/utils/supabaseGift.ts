@@ -17,9 +17,13 @@ export async function fetchGifts() {
 
 export async function addGift(gift: any) {
   const userId = await getCurrentUserId();
+  // 日志：输出 gift
+  console.log('addGift - 最终入库 gift:', gift);
+  // 强制剥离 id 字段
+  const { id, ...giftWithoutId } = gift;
   const { data, error } = await supabase
     .from('gifts')
-    .insert([{ ...gift, user_id: userId }]);
+    .insert([{ ...giftWithoutId, user_id: userId }]);
   if (error) throw error;
   return data;
 }

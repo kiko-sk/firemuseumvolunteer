@@ -289,7 +289,7 @@ const GiftPage: React.FC = () => {
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-          const validData: GiftData[] = [];
+          const validData: any[] = [];
           const errors: string[] = [];
           let skippedRows = 0;
 
@@ -372,20 +372,23 @@ const GiftPage: React.FC = () => {
               const status = getColumnValue(row, '状态') === '下架' ? 'inactive' : 'active';
               const description = getColumnValue(row, '描述') as string;
               
-              const gift: GiftData = {
-                id: Date.now().toString() + index,
-                name: name as string,
-                category: category as string,
-                points: points,
-                stock: stock,
+              // 构造 gift 对象时不包含 id 字段，交由数据库自动生成
+              // 如果 Excel 行里有 id 字段，自动忽略
+              const { id: _ignoredId, ...rowWithoutId } = row;
+              const gift = {
+                name: getColumnValue(rowWithoutId, '礼品名称') as string,
+                category: getColumnValue(rowWithoutId, '类别') as string,
+                points: parseInt(getColumnValue(rowWithoutId, '所需积分', true) as string) || 0,
+                stock: parseInt(getColumnValue(rowWithoutId, '库存', true) as string) || 0,
                 exchanged: 0, // 新导入的礼品，已兑换数量为0
                 image: '', // 新导入的礼品，暂时没有图片
-                description: description,
-                status: status,
+                description: getColumnValue(rowWithoutId, '描述') as string,
+                status: getColumnValue(rowWithoutId, '状态') === '下架' ? 'inactive' : 'active',
                 createTime: dayjs().format('YYYY-MM-DD'),
                 updateTime: dayjs().format('YYYY-MM-DD')
               };
-
+              // gift 对象本身没有 id 字段，直接 push 即可
+              console.log('handleBatchImport - 处理后的 gift:', gift);
               validData.push(gift);
             } catch (error) {
               console.error(`第${index + 1}行处理错误:`, error);
@@ -426,7 +429,9 @@ const GiftPage: React.FC = () => {
                 } else {
                   // 普通用户，批量写入Supabase
                   for (const gift of validData) {
-                    await addGift(gift);
+                    // 再保险：addGift 前剥离 id 字段
+                    const { id: _id, ...giftWithoutId } = gift;
+                    await addGift(giftWithoutId);
                   }
                   // 重新加载数据
                   const data = await fetchGifts();
