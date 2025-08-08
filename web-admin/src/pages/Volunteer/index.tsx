@@ -1914,7 +1914,7 @@ const VolunteerPage: React.FC = () => {
             status: 'active',
             serviceHours: 0,
             explainScore: 0,
-            bonusScore: 0,
+            // bonusScore: 0, // 暂时注释，Supabase数据库中没有此字段
             volunteerNo: '', // 新增志愿者编号
             phone: '', // 新增电话
             serviceCount: 0, // 新增服务次数

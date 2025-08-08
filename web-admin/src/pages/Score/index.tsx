@@ -11,7 +11,7 @@ interface ScoreData {
   volunteerNo: string;
   serviceScore: number;
   explanationScore: number;
-  bonusScore: number;
+  // bonusScore: number; // 暂时注释，Supabase数据库中没有此字段
   totalScore: number;
   redeemedScore: number;
   remainingScore: number;
@@ -36,10 +36,10 @@ const ScoreManagement: React.FC = () => {
           volunteerNo: volunteer.volunteerNo || '',
           serviceScore: volunteer.serviceScore || 0,
           explanationScore: volunteer.explanationScore || 0,
-          bonusScore: volunteer.bonusScore || 0,
-          totalScore: (volunteer.serviceScore || 0) + (volunteer.explanationScore || 0) + (volunteer.bonusScore || 0),
+          // bonusScore: volunteer.bonusScore || 0, // 暂时注释，Supabase数据库中没有此字段
+          totalScore: (volunteer.serviceScore || 0) + (volunteer.explanationScore || 0), // 移除bonusScore
           redeemedScore: volunteer.redeemedScore || 0,
-          remainingScore: ((volunteer.serviceScore || 0) + (volunteer.explanationScore || 0) + (volunteer.bonusScore || 0)) - (volunteer.redeemedScore || 0),
+          remainingScore: ((volunteer.serviceScore || 0) + (volunteer.explanationScore || 0)) - (volunteer.redeemedScore || 0), // 移除bonusScore
           lastUpdateTime: dayjs().format('YYYY-MM-DD HH:mm:ss')
         }));
         setScoreData(scoreRecords);
@@ -85,13 +85,13 @@ const ScoreManagement: React.FC = () => {
       width: 100,
       render: (value: number) => <Tag color="green">{value}</Tag>
     },
-    {
-      title: '附加积分',
-      dataIndex: 'bonusScore',
-      key: 'bonusScore',
-      width: 100,
-      render: (value: number) => <Tag color="orange">{value}</Tag>
-    },
+    // {
+    //   title: '附加积分',
+    //   dataIndex: 'bonusScore',
+    //   key: 'bonusScore',
+    //   width: 100,
+    //   render: (value: number) => <Tag color="orange">{value}</Tag>
+    // },
     {
       title: '总积分',
       dataIndex: 'totalScore',

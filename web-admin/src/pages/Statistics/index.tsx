@@ -12,7 +12,7 @@ interface VolunteerData {
   serviceHours: number;
   serviceScore: number;
   explainScore: number;
-  bonusScore: number;
+  // bonusScore: number; // 暂时注释，Supabase数据库中没有此字段
   totalScore: number;
   redeemedScore: number;
   remainingScore: number;
@@ -93,7 +93,7 @@ const StatisticsPage: React.FC = () => {
   const totalServiceHours = volunteerData.reduce((sum, v) => sum + v.serviceHours, 0);
   const totalServiceScore = volunteerData.reduce((sum, v) => sum + v.serviceScore, 0);
   const totalExplainScore = volunteerData.reduce((sum, v) => sum + v.explainScore, 0);
-  const totalBonusScore = volunteerData.reduce((sum, v) => sum + v.bonusScore, 0);
+  // const totalBonusScore = volunteerData.reduce((sum, v) => sum + v.bonusScore, 0); // 暂时注释，Supabase数据库中没有此字段
   const totalScore = volunteerData.reduce((sum, v) => sum + v.totalScore, 0);
   const totalRedeemedScore = volunteerData.reduce((sum, v) => sum + v.redeemedScore, 0);
   const totalRemainingScore = volunteerData.reduce((sum, v) => sum + v.remainingScore, 0);
@@ -331,13 +331,13 @@ const StatisticsPage: React.FC = () => {
                   valueStyle={{ color: '#52c41a' }}
                 />
               </Col>
-              <Col xs={12} sm={6}>
+              {/* <Col xs={12} sm={6}>
                 <Statistic
                   title="附加积分"
                   value={totalBonusScore}
                   valueStyle={{ color: '#fa8c16' }}
                 />
-              </Col>
+              </Col> */}
               <Col xs={12} sm={6}>
                 <Statistic
                   title="已兑换积分"

@@ -21,7 +21,7 @@ interface VolunteerData {
   serviceHours: number;
   serviceScore: number;
   explainScore: number;
-  bonusScore: number;
+  // bonusScore: number; // 暂时注释，Supabase数据库中没有此字段
   totalScore: number;
   redeemedScore: number;
   remainingScore: number;
