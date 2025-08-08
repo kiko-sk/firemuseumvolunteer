@@ -158,45 +158,36 @@ export async function batchAddVolunteers(volunteers: any[]) {
       throw new Error('用户未登录');
     }
     
-    // 为每个志愿者添加用户ID，并只保留Supabase数据库中存在的字段
+    // 为每个志愿者添加用户ID，并过滤掉所有不存在的字段
     const volunteersWithUserId = volunteers.map(volunteer => {
-      // 只保留Supabase数据库中确实存在的字段
-      const {
-        volunteerNo,
-        name,
-        phone,
-        gender,
-        age,
-        type,
-        serviceCount,
-        serviceHours,
-        totalscore,
-        redeemedscore,
-        remainingscore,
-        status,
-        registerdate,
-        lastservicedate,
-        remark
-      } = volunteer;
-      
-      return {
-        volunteerNo,
-        name,
-        phone,
-        gender,
-        age,
-        type,
-        serviceCount,
-        serviceHours,
-        totalscore,
-        redeemedscore,
-        remainingscore,
-        status,
-        registerdate,
-        lastservicedate,
-        remark,
+      // 创建一个新对象，只包含Supabase数据库中确实存在的字段
+      const cleanVolunteer: any = {
+        volunteerNo: volunteer.volunteerNo,
+        name: volunteer.name,
+        phone: volunteer.phone,
+        gender: volunteer.gender,
+        age: volunteer.age,
+        type: volunteer.type,
+        serviceCount: volunteer.serviceCount,
+        serviceHours: volunteer.serviceHours,
+        totalscore: volunteer.totalscore,
+        redeemedscore: volunteer.redeemedscore,
+        remainingscore: volunteer.remainingscore,
+        status: volunteer.status,
+        registerdate: volunteer.registerdate,
+        lastservicedate: volunteer.lastservicedate,
+        remark: volunteer.remark,
         user_id: userId
       };
+      
+      // 移除所有undefined和null值
+      Object.keys(cleanVolunteer).forEach(key => {
+        if (cleanVolunteer[key] === undefined || cleanVolunteer[key] === null) {
+          delete cleanVolunteer[key];
+        }
+      });
+      
+      return cleanVolunteer;
     });
     
     const { data, error } = await supabase
