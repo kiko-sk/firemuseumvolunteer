@@ -74,7 +74,7 @@ interface VolunteerData {
   serviceHours2025: number; // 服务时长2025
   serviceScore: number; // 服务积分
   explainScore: number;
-  bonusScore: number; // 附加积分
+  // bonusScore: number; // 附加积分 - 暂时注释，Supabase数据库中没有此字段
   totalscore: number; // 当前总积分 = 服务积分 + 讲解积分 + 附加积分
   redeemedscore: number; // 已兑换积分
   remainingscore: number; // 剩余积分 = 总积分 - 已兑换积分
@@ -355,13 +355,13 @@ const VolunteerPage: React.FC = () => {
       width: 80,
       render: (text) => <span>{text}</span>
     },
-    {
-      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>附加积分</div>,
-      dataIndex: 'bonusScore',
-      key: 'bonusScore',
-      width: 80,
-      render: (text) => <span>{text}</span>
-    },
+    // {
+    //   title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>附加积分</div>,
+    //   dataIndex: 'bonusScore',
+    //   key: 'bonusScore',
+    //   width: 80,
+    //   render: (text) => <span>{text}</span>
+    // },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>累计获得积分</div>,
       dataIndex: 'totalscore',
@@ -680,7 +680,7 @@ const VolunteerPage: React.FC = () => {
                 serviceHours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
                 serviceScore: parseInt(getColumnValue('服务积分')) || 0,
                 explainScore: parseInt(getColumnValue('讲解积分')) || 0,
-                bonusScore: parseInt(getColumnValue('附加积分')) || 0,
+                // bonusScore: parseInt(getColumnValue('附加积分')) || 0, // 暂时注释，Supabase数据库中没有此字段
                 totalscore: parseInt(getColumnValue('累计获得积分')) || 0,
                 redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
                 remainingscore: parseInt(getColumnValue('剩余积分')) || 0,
@@ -895,7 +895,7 @@ const VolunteerPage: React.FC = () => {
                 serviceHours2025: 30,
                 serviceScore: 80,
                 explainScore: 0,
-                bonusScore: 20,
+                // bonusScore: 20, // 暂时注释，Supabase数据库中没有此字段
                 accumulateds: 120,
                 totalscore: 120,
                 redeemedscor: 30,
@@ -931,7 +931,7 @@ const VolunteerPage: React.FC = () => {
                 serviceHours2025: 20,
                 serviceScore: 100,
                 explainScore: 0,
-                bonusScore: 20,
+                // bonusScore: 20, // 暂时注释，Supabase数据库中没有此字段
                 accumulateds: 120,
                 totalscore: 120,
                 redeemedscor: 30,
@@ -955,7 +955,7 @@ const VolunteerPage: React.FC = () => {
                 serviceHours2025: 30,
                 serviceScore: 80,
                 explainScore: 0,
-                bonusScore: 20,
+                // bonusScore: 20, // 暂时注释，Supabase数据库中没有此字段
                 accumulateds: 120,
                 totalscore: 120,
                 redeemedscor: 30,
@@ -1080,7 +1080,7 @@ const VolunteerPage: React.FC = () => {
         服务时长2025: `${v.serviceHours2025}小时`,
         服务积分: v.serviceScore,
         讲解积分: v.explainScore,
-        附加积分: v.bonusScore,
+        // 附加积分: v.bonusScore, // 暂时注释，Supabase数据库中没有此字段
         累计获得积分: v.totalscore,
                   已兑换积分: v.redeemedscore,
           剩余积分: v.remainingscore,
@@ -1192,8 +1192,8 @@ const VolunteerPage: React.FC = () => {
       const serviceHours = values.serviceHours || 0;
       const serviceScore = calculateServiceScore(serviceHours);
       const explainScore = values.explainScore || 0;
-      const bonusScore = values.bonusScore || 0; // 附加积分
-      const totalScore = serviceScore + explainScore + bonusScore; // 总积分 = 服务积分 + 讲解积分 + 附加积分
+          // const bonusScore = values.bonusScore || 0; // 附加积分 - 暂时注释，Supabase数据库中没有此字段
+    const totalScore = serviceScore + explainScore; // 总积分 = 服务积分 + 讲解积分
 
       // 根据2025年服务时长和最后服务日期自动判定状态
       const autoStatus = determineStatusByServiceHours(parseInt(values.serviceHours2025) || 0, values.lastServiceDate || '');
@@ -1211,7 +1211,7 @@ const VolunteerPage: React.FC = () => {
         serviceHours2025: parseInt(values.serviceHours2025) || 0, // 新增服务时长2025
         serviceScore: serviceScore,
         explainScore: explainScore,
-        bonusScore: bonusScore,
+        // bonusScore: bonusScore, // 暂时注释，Supabase数据库中没有此字段
         accumulateds: parseInt(values.accumulateds) || 0, // 新增累计获得积分
         totalscore: totalScore,
         redeemedscore: values.redeemedScore || 0,
@@ -2058,7 +2058,7 @@ const VolunteerPage: React.FC = () => {
                 />
           </Form.Item>
             </Col>
-            <Col span={8}>
+            {/* <Col span={8}>
               <Form.Item
                 name="bonusScore"
                 label="附加积分"
@@ -2070,7 +2070,7 @@ const VolunteerPage: React.FC = () => {
               style={{ width: '100%' }}
             />
           </Form.Item>
-            </Col>
+            </Col> */}
             <Col span={8}>
               <Form.Item
                 name="redeemedScore"
