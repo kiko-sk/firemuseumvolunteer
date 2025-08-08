@@ -71,13 +71,9 @@ interface VolunteerData {
   type: '场馆服务' | '讲解服务';
   serviceCount: number; // 服务次数
   serviceHours: number; // 总服务时长（小时）
-  serviceHours2025: number; // 服务时长2025
-  serviceScore: number; // 服务积分
-  explainScore: number;
-  // bonusScore: number; // 附加积分 - 暂时注释，Supabase数据库中没有此字段
-  totalscore: number; // 当前总积分 = 服务积分 + 讲解积分 + 附加积分
+  totalscore: number; // 当前总积分
   redeemedscore: number; // 已兑换积分
-  remainingscore: number; // 剩余积分 = 总积分 - 已兑换积分
+  remainingscore: number; // 剩余积分
   status: 'active' | 'inactive' | 'need_review';
   registerdate: string;
   lastservicedate: string;
@@ -335,35 +331,7 @@ const VolunteerPage: React.FC = () => {
       render: (text) => <span>{text}小时</span>
     },
     {
-      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>服务时长2025</div>,
-      dataIndex: 'serviceHours2025',
-      key: 'serviceHours2025',
-      width: 100,
-      render: (text) => <span>{text}小时</span>
-    },
-    {
-      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>服务积分</div>,
-      dataIndex: 'serviceScore',
-      key: 'serviceScore',
-      width: 80,
-      render: (text) => <span>{text}</span>
-    },
-    {
-      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>讲解积分</div>,
-      dataIndex: 'explainScore',
-      key: 'explainScore',
-      width: 80,
-      render: (text) => <span>{text}</span>
-    },
-    // {
-    //   title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>附加积分</div>,
-    //   dataIndex: 'bonusScore',
-    //   key: 'bonusScore',
-    //   width: 80,
-    //   render: (text) => <span>{text}</span>
-    // },
-    {
-      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>累计获得积分</div>,
+      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>总积分</div>,
       dataIndex: 'totalscore',
       key: 'totalscore',
       width: 100,
@@ -666,7 +634,7 @@ const VolunteerPage: React.FC = () => {
               const serviceHours2025 = parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0;
               const type = getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务';
               const lastServiceDate = getColumnValue('最后服务日期') || '';
-              const autoStatus = determineStatusByServiceHours(serviceHours2025, lastServiceDate);
+              const autoStatus = determineStatusByServiceHours(0, lastServiceDate); // 暂时使用0，因为serviceHours2025字段不存在
               
               const volunteer = {
                 volunteerNo: getColumnValue('志愿者编号') || '',
@@ -677,9 +645,9 @@ const VolunteerPage: React.FC = () => {
                 type: getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务',
                 serviceCount: parseInt(getColumnValue('服务次数')) || 0,
                 serviceHours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
-                serviceHours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
-                serviceScore: parseInt(getColumnValue('服务积分')) || 0,
-                explainScore: parseInt(getColumnValue('讲解积分')) || 0,
+                // serviceHours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0, // 暂时注释
+                // serviceScore: parseInt(getColumnValue('服务积分')) || 0, // 暂时注释
+                // explainScore: parseInt(getColumnValue('讲解积分')) || 0, // 暂时注释
                 // bonusScore: parseInt(getColumnValue('附加积分')) || 0, // 暂时注释，Supabase数据库中没有此字段
                 totalscore: parseInt(getColumnValue('累计获得积分')) || 0,
                 redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
