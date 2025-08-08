@@ -158,11 +158,46 @@ export async function batchAddVolunteers(volunteers: any[]) {
       throw new Error('用户未登录');
     }
     
-    // 为每个志愿者添加用户ID
-    const volunteersWithUserId = volunteers.map(volunteer => ({
-      ...volunteer,
-      user_id: userId
-    }));
+    // 为每个志愿者添加用户ID，并只保留Supabase数据库中存在的字段
+    const volunteersWithUserId = volunteers.map(volunteer => {
+      // 只保留Supabase数据库中确实存在的字段
+      const {
+        volunteerNo,
+        name,
+        phone,
+        gender,
+        age,
+        type,
+        serviceCount,
+        serviceHours,
+        totalscore,
+        redeemedscore,
+        remainingscore,
+        status,
+        registerdate,
+        lastservicedate,
+        remark
+      } = volunteer;
+      
+      return {
+        volunteerNo,
+        name,
+        phone,
+        gender,
+        age,
+        type,
+        serviceCount,
+        serviceHours,
+        totalscore,
+        redeemedscore,
+        remainingscore,
+        status,
+        registerdate,
+        lastservicedate,
+        remark,
+        user_id: userId
+      };
+    });
     
     const { data, error } = await supabase
       .from('volunteers')
