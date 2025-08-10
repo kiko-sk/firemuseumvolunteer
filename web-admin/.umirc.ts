@@ -76,7 +76,7 @@ export default defineConfig({
   esbuildMinifyIIFE: true,
   mfsu: false,
   hash: true,
-  publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
+  publicPath: '/',
   targets: {
     chrome: 80,
     firefox: 80,

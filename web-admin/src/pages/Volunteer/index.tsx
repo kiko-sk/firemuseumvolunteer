@@ -71,6 +71,7 @@ interface VolunteerData {
   type: '场馆服务' | '讲解服务';
   serviceCount: number; // 服务次数
   serviceHours: number; // 总服务时长（小时）
+  serviceHours2025: number; // 服务时长2025（小时）
   serviceScore: number; // 服务积分
   explainScore: number; // 讲解积分
   bonusScore: number; // 附加积分
@@ -464,6 +465,7 @@ const VolunteerPage: React.FC = () => {
           服务类型: '讲解服务',
           服务次数: 10,
           总服务小时: '30小时',
+          服务时长2025: '15小时',
           服务积分: 7,
           讲解积分: 8,
           附加积分: 2,
@@ -481,6 +483,7 @@ const VolunteerPage: React.FC = () => {
           服务类型: '场馆服务',
           服务次数: 5,
           总服务小时: '24小时',
+          服务时长2025: '12小时',
           服务积分: 6,
           讲解积分: 0,
           附加积分: 0,
@@ -507,6 +510,7 @@ const VolunteerPage: React.FC = () => {
         { wch: 12 }, // 服务类型
         { wch: 10 }, // 服务次数
         { wch: 10 }, // 总服务小时
+        { wch: 12 }, // 服务时长2025
         { wch: 10 }, // 服务积分
         { wch: 10 }, // 讲解积分
         { wch: 10 }, // 附加积分
@@ -661,6 +665,7 @@ const VolunteerPage: React.FC = () => {
                 type: getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务',
                 servicecount: parseInt(getColumnValue('服务次数')) || 0,
                 servicehours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
+                servicehours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
                 servicescore: parseInt(getColumnValue('服务积分')) || 0, // 服务积分
                 explainscore: parseInt(getColumnValue('讲解积分')) || 0, // 讲解积分
                 bonusscore: parseInt(getColumnValue('附加积分')) || 0, // 附加积分
@@ -684,6 +689,7 @@ const VolunteerPage: React.FC = () => {
                 type: (getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务') as '场馆服务' | '讲解服务',
                 serviceCount: parseInt(getColumnValue('服务次数')) || 0,
                 serviceHours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
+                serviceHours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
                 serviceScore: parseInt(getColumnValue('服务积分')) || 0, // 服务积分
                 explainScore: parseInt(getColumnValue('讲解积分')) || 0, // 讲解积分
                 bonusScore: parseInt(getColumnValue('附加积分')) || 0, // 附加积分
