@@ -636,16 +636,16 @@ const VolunteerPage: React.FC = () => {
               const lastServiceDate = getColumnValue('最后服务日期') || '';
               const autoStatus = determineStatusByServiceHours(0, lastServiceDate); // 暂时使用0，因为serviceHours2025字段不存在
               
-              // 只包含Supabase数据库中确实存在的字段
-              const volunteer = {
-                volunteerNo: getColumnValue('志愿者编号') || '',
+              // 只包含Supabase数据库中确实存在的字段，使用小写字段名
+              const volunteer: any = {
+                volunteerno: getColumnValue('志愿者编号') || '',
                 name: getColumnValue('姓名') || '',
                 phone: getColumnValue('电话') || '',
                 gender: getColumnValue('性别') || '',
                 age: parseInt(getColumnValue('年龄')) || 0,
                 type: getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务',
-                serviceCount: parseInt(getColumnValue('服务次数')) || 0,
-                serviceHours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
+                servicecount: parseInt(getColumnValue('服务次数')) || 0,
+                servicehours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
                 totalscore: parseInt(getColumnValue('累计获得积分')) || 0,
                 redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
                 remainingscore: parseInt(getColumnValue('剩余积分')) || 0,
@@ -653,7 +653,7 @@ const VolunteerPage: React.FC = () => {
                 registerdate: dayjs().format('YYYY-MM-DD'),
                 lastservicedate: lastServiceDate,
                 remark: getColumnValue('备注') || ''
-              } as VolunteerData;
+              };
 
               validData.push(volunteer);
             } catch (error) {
@@ -761,7 +761,7 @@ const VolunteerPage: React.FC = () => {
         try {
           const updatedData = volunteers.map(volunteer => ({
             ...volunteer,
-            status: determineStatusByServiceHours(volunteer.serviceHours2025, volunteer.lastservicedate)
+            status: determineStatusByServiceHours(volunteer.serviceHours, volunteer.lastservicedate)
           }));
           
           if (isLocalAdmin()) {
@@ -1042,7 +1042,7 @@ const VolunteerPage: React.FC = () => {
         服务类型: v.type,
         服务次数: v.serviceCount,
         总服务小时: `${v.serviceHours}小时`,
-        服务时长2025: `${v.serviceHours2025}小时`,
+                        服务时长2025: `${v.serviceHours}小时`,
         服务积分: v.serviceScore,
         讲解积分: v.explainScore,
         // 附加积分: v.bonusScore, // 暂时注释，Supabase数据库中没有此字段
@@ -1873,8 +1873,8 @@ const VolunteerPage: React.FC = () => {
           initialValues={editingVolunteer ? {
             ...editingVolunteer,
             lastexplaindat: editingVolunteer.lastexplaindat ? dayjs(editingVolunteer.lastexplaindat) : null,
-            serviceHours2025: editingVolunteer.serviceHours2025 || 0, // 新增服务时长2025
-            accumulateds: editingVolunteer.accumulateds || 0, // 新增累计获得积分
+            serviceHours2025: editingVolunteer.serviceHours || 0, // 新增服务时长2025
+            accumulateds: editingVolunteer.totalscore || 0, // 新增累计获得积分
           } : {
             status: 'active',
             serviceHours: 0,
