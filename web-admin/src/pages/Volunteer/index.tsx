@@ -433,12 +433,8 @@ const VolunteerPage: React.FC = () => {
   // 编辑志愿者
   const handleEdit = (volunteer: VolunteerData) => {
     setEditingVolunteer(volunteer);
-    // 处理日期字段，将字符串转换为dayjs对象
-    const formData = {
-      ...volunteer,
-      lastexplaindat: volunteer.lastexplaindat ? dayjs(volunteer.lastexplaindat) : null
-    };
-    form.setFieldsValue(formData);
+    // 设置表单数据
+    form.setFieldsValue(volunteer);
     setModalVisible(true);
   };
 
@@ -554,9 +550,9 @@ const VolunteerPage: React.FC = () => {
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
           // 验证和转换数据
-          const validData: VolunteerData[] = [];
+          const validData: any[] = [];
+          const validDataForDisplay: VolunteerData[] = [];
           const errors: string[] = [];
-
           let skippedRows = 0; // 统计跳过的空行数量
           
           // 创建列名映射，处理可能的格式问题
@@ -676,7 +672,34 @@ const VolunteerPage: React.FC = () => {
                 remark: getColumnValue('备注') || ''
               };
 
+              // 同时创建一个用于本地显示的版本（驼峰命名）
+              const volunteerForDisplay: VolunteerData = {
+                id: Date.now().toString() + index, // 临时ID
+                volunteerNo: getColumnValue('志愿者编号') || '',
+                name: getColumnValue('姓名') || '',
+                phone: getColumnValue('电话') || '',
+                gender: getColumnValue('性别') || '',
+                age: parseInt(getColumnValue('年龄')) || 0,
+                type: (getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务') as '场馆服务' | '讲解服务',
+                serviceCount: parseInt(getColumnValue('服务次数')) || 0,
+                serviceHours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
+                serviceScore: parseInt(getColumnValue('服务积分')) || 0, // 服务积分
+                explainScore: parseInt(getColumnValue('讲解积分')) || 0, // 讲解积分
+                bonusScore: parseInt(getColumnValue('附加积分')) || 0, // 附加积分
+                totalscore: parseInt(getColumnValue('累计获得积分')) || 0,
+                redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
+                remainingscore: parseInt(getColumnValue('剩余积分')) || 0,
+                status: 'active',
+                registerdate: dayjs().format('YYYY-MM-DD'),
+                lastservicedate: lastServiceDate,
+                remark: getColumnValue('备注') || ''
+              };
+
               validData.push(volunteer);
+              // 如果是本地管理员，也保存显示版本
+              if (isLocalAdmin()) {
+                validDataForDisplay.push(volunteerForDisplay);
+              }
             } catch (error) {
               console.error(`第${index + 1}行处理错误:`, error);
               const errorMessage = error instanceof Error ? error.message : '未知错误';
@@ -709,10 +732,10 @@ const VolunteerPage: React.FC = () => {
               try {
                 if (isLocalAdmin()) {
                   // 本地管理员，使用localStorage
-                  const newData = [...volunteers, ...validData];
+                  const newData = [...volunteers, ...validDataForDisplay];
                   setVolunteers(newData);
                   localStorage.setItem('volunteerData', JSON.stringify(newData));
-                  message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
+                  message.success(`成功导入 ${validDataForDisplay.length} 条数据，跳过 ${skippedRows} 条空行！`);
                 } else {
                   // 普通用户，使用批量插入API
                   await batchAddVolunteers(validData);
@@ -777,7 +800,7 @@ const VolunteerPage: React.FC = () => {
   const handleBatchUpdateStatus = async () => {
     Modal.confirm({
       title: '批量更新状态',
-      content: '确定要根据2025年服务时长和最后服务日期重新计算所有志愿者的状态吗？',
+      content: '确定要根据服务时长和最后服务日期重新计算所有志愿者的状态吗？',
       onOk: async () => {
         try {
           const updatedData = volunteers.map(volunteer => ({
@@ -854,18 +877,15 @@ const VolunteerPage: React.FC = () => {
                 type: '场馆服务' as const,
                 serviceCount: 10,
                 serviceHours: 50,
-                serviceHours2025: 20,
                 serviceScore: 100,
                 explainScore: 0,
                 bonusScore: 20,
-                accumulateds: 120,
                 totalscore: 120,
-                redeemedscor: 30,
-                remainingscor: 90,
-                lastexplaindat: '',
+                redeemedscore: 30,
+                remainingscore: 90,
                 status: 'active' as const,
                 registerdate: '2024-01-01',
-                lastservicedat: '2025-01-15',
+                lastservicedate: '2025-01-15',
                 remark: '示例数据'
               },
               {
@@ -874,22 +894,19 @@ const VolunteerPage: React.FC = () => {
                 name: '李四',
                 phone: '13800138002',
                 gender: '女',
-                age: 28,
-                type: '讲解服务',
+                age: 30,
+                type: '讲解服务' as const,
                 serviceCount: 15,
-                serviceHours: 120,
-                serviceHours2025: 30,
-                serviceScore: 80,
-                explainScore: 0,
-                // bonusScore: 20, // 暂时注释，Supabase数据库中没有此字段
-                accumulateds: 120,
-                totalscore: 120,
-                redeemedscor: 30,
-                remainingscor: 90,
-                lastexplaindat: '',
-                status: 'active',
-                registerdate: '2024-01-01',
-                lastservicedat: '2025-01-15',
+                serviceHours: 80,
+                serviceScore: 150,
+                explainScore: 50,
+                bonusScore: 30,
+                totalscore: 230,
+                redeemedscore: 50,
+                remainingscore: 180,
+                status: 'active' as const,
+                registerdate: '2024-01-02',
+                lastservicedate: '2025-01-20',
                 remark: '示例数据'
               }
             ];
@@ -914,18 +931,15 @@ const VolunteerPage: React.FC = () => {
                 type: '场馆服务' as const,
                 serviceCount: 10,
                 serviceHours: 50,
-                serviceHours2025: 20,
                 serviceScore: 100,
                 explainScore: 0,
-                // bonusScore: 20, // 暂时注释，Supabase数据库中没有此字段
-                accumulateds: 120,
+                bonusScore: 20,
                 totalscore: 120,
-                redeemedscor: 30,
-                remainingscor: 90,
-                lastexplaindat: '',
+                redeemedscore: 30,
+                remainingscore: 90,
                 status: 'active' as const,
                 registerdate: '2024-01-01',
-                lastservicedat: '2025-01-15',
+                lastservicedate: '2025-01-15',
                 remark: '示例数据'
               },
               {
@@ -934,22 +948,19 @@ const VolunteerPage: React.FC = () => {
                 name: '李四',
                 phone: '13800138002',
                 gender: '女',
-                age: 28,
-                type: '讲解服务',
+                age: 30,
+                type: '讲解服务' as const,
                 serviceCount: 15,
-                serviceHours: 120,
-                serviceHours2025: 30,
-                serviceScore: 80,
-                explainScore: 0,
-                // bonusScore: 20, // 暂时注释，Supabase数据库中没有此字段
-                accumulateds: 120,
-                totalscore: 120,
-                redeemedscor: 30,
-                remainingscor: 90,
-                lastexplaindat: '',
-                status: 'active',
-                registerdate: '2024-01-01',
-                lastservicedat: '2025-01-15',
+                serviceHours: 80,
+                serviceScore: 150,
+                explainScore: 50,
+                bonusScore: 30,
+                totalscore: 230,
+                redeemedscore: 50,
+                remainingscore: 180,
+                status: 'active' as const,
+                registerdate: '2024-01-02',
+                lastservicedate: '2025-01-20',
                 remark: '示例数据'
               }
             ];
@@ -1146,10 +1157,10 @@ const VolunteerPage: React.FC = () => {
     return Math.floor(serviceHours / 4);
   };
 
-  // 根据2025年服务时长和最后服务日期自动判定状态
-  const determineStatusByServiceHours = (serviceHours2025: number, lastServiceDate: string): 'active' | 'inactive' | 'need_review' => {
-    // 如果2025年服务时长为0，直接判定为非活跃
-    if (serviceHours2025 === 0) {
+  // 根据服务时长和最后服务日期自动判定状态
+  const determineStatusByServiceHours = (serviceHours: number, lastServiceDate: string): 'active' | 'inactive' | 'need_review' => {
+    // 如果服务时长为0，直接判定为非活跃
+    if (serviceHours === 0) {
       return 'inactive';
     }
     
@@ -1178,8 +1189,8 @@ const VolunteerPage: React.FC = () => {
           // const bonusScore = values.bonusScore || 0; // 附加积分 - 暂时注释，Supabase数据库中没有此字段
     const totalScore = serviceScore + explainScore; // 总积分 = 服务积分 + 讲解积分
 
-      // 根据2025年服务时长和最后服务日期自动判定状态
-      const autoStatus = determineStatusByServiceHours(parseInt(values.serviceHours2025) || 0, values.lastServiceDate || '');
+      // 根据服务时长和最后服务日期自动判定状态
+      const autoStatus = determineStatusByServiceHours(parseInt(values.serviceHours) || 0, values.lastServiceDate || '');
       
       const newVolunteer: VolunteerData = {
         id: editingVolunteer?.id || Date.now().toString(),
@@ -1191,18 +1202,15 @@ const VolunteerPage: React.FC = () => {
         type: values.type,
         serviceCount: parseInt(values.serviceCount) || 0, // 新增服务次数
         serviceHours: serviceHours,
-        serviceHours2025: parseInt(values.serviceHours2025) || 0, // 新增服务时长2025
         serviceScore: serviceScore,
         explainScore: explainScore,
-        // bonusScore: bonusScore, // 暂时注释，Supabase数据库中没有此字段
-        accumulateds: parseInt(values.accumulateds) || 0, // 新增累计获得积分
+        bonusScore: values.bonusScore || 0, // 附加积分
         totalscore: totalScore,
         redeemedscore: values.redeemedScore || 0,
         remainingscore: totalScore - (values.redeemedScore || 0),
-        lastexplaindat: values.lastExplainDate ? values.lastExplainDate.format('YYYY-MM-DD') : '',
         status: autoStatus, // 使用自动判定的状态
         registerdate: editingVolunteer?.registerdate || dayjs().format('YYYY-MM-DD'),
-        lastservicedat: values.lastServiceDate || '',
+        lastservicedate: values.lastServiceDate || '',
         remark: values.remark || ''
       };
 
