@@ -56,9 +56,29 @@ export async function addVolunteer(volunteer: any) {
       throw new Error('用户未登录');
     }
     
+    // 转换字段名为小写以匹配数据库结构
+    const cleanVolunteer = {
+      volunteerno: volunteer.volunteerNo,
+      name: volunteer.name,
+      phone: volunteer.phone,
+      gender: volunteer.gender,
+      age: volunteer.age,
+      type: volunteer.type,
+      servicecount: volunteer.serviceCount,
+      servicehours: volunteer.serviceHours,
+      totalscore: volunteer.totalscore,
+      redeemedscore: volunteer.redeemedscore,
+      remainingscore: volunteer.remainingscore,
+      status: volunteer.status,
+      registerdate: volunteer.registerdate,
+      lastservicedate: volunteer.lastservicedate,
+      remark: volunteer.remark,
+      user_id: userId
+    };
+    
     const { data, error } = await supabase
       .from('volunteers')
-      .insert([{ ...volunteer, user_id: userId }]);
+      .insert([cleanVolunteer]);
     
     console.log('addVolunteer - 插入结果:', { data, error });
     
@@ -80,9 +100,29 @@ export async function updateVolunteer(id: string, volunteer: any) {
       throw new Error('用户未登录');
     }
     
+    // 转换字段名为小写以匹配数据库结构
+    const cleanVolunteer = {
+      volunteerno: volunteer.volunteerNo,
+      name: volunteer.name,
+      phone: volunteer.phone,
+      gender: volunteer.gender,
+      age: volunteer.age,
+      type: volunteer.type,
+      servicecount: volunteer.serviceCount,
+      servicehours: volunteer.serviceHours,
+      totalscore: volunteer.totalscore,
+      redeemedscore: volunteer.redeemedscore,
+      remainingscore: volunteer.remainingscore,
+      status: volunteer.status,
+      registerdate: volunteer.registerdate,
+      lastservicedate: volunteer.lastservicedate,
+      remark: volunteer.remark,
+      user_id: userId
+    };
+    
     const { data, error } = await supabase
       .from('volunteers')
-      .update({ ...volunteer, user_id: userId })
+      .update(cleanVolunteer)
       .eq('id', id)
       .eq('user_id', userId);
     
@@ -160,16 +200,16 @@ export async function batchAddVolunteers(volunteers: any[]) {
     
     // 为每个志愿者添加用户ID，并过滤掉所有不存在的字段
     const volunteersWithUserId = volunteers.map(volunteer => {
-      // 创建一个新对象，只包含Supabase数据库中确实存在的字段
+      // 创建一个新对象，只包含Supabase数据库中确实存在的字段，使用小写字段名
       const cleanVolunteer: any = {
-        volunteerNo: volunteer.volunteerNo,
+        volunteerno: volunteer.volunteerNo,
         name: volunteer.name,
         phone: volunteer.phone,
         gender: volunteer.gender,
         age: volunteer.age,
         type: volunteer.type,
-        serviceCount: volunteer.serviceCount,
-        serviceHours: volunteer.serviceHours,
+        servicecount: volunteer.serviceCount,
+        servicehours: volunteer.serviceHours,
         totalscore: volunteer.totalscore,
         redeemedscore: volunteer.redeemedscore,
         remainingscore: volunteer.remainingscore,
