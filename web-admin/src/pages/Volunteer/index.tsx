@@ -108,50 +108,51 @@ const VolunteerPage: React.FC = () => {
   };
 
   // 加载志愿者数据（云端或本地）
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      console.log('开始加载志愿者数据...');
-      
-      if (isLocalAdmin()) {
-        console.log('使用本地管理员模式');
-        // 本地管理员账号，走localStorage
-        const savedData = localStorage.getItem('volunteerData');
-        if (savedData) {
-          try {
-            setVolunteers(JSON.parse(savedData));
-          } catch {
-            setVolunteers([]);
-          }
-        } else {
+  const loadData = async () => {
+    setLoading(true);
+    console.log('开始加载志愿者数据...');
+    
+    if (isLocalAdmin()) {
+      console.log('使用本地管理员模式');
+      // 本地管理员账号，走localStorage
+      const savedData = localStorage.getItem('volunteerData');
+      if (savedData) {
+        try {
+          setVolunteers(JSON.parse(savedData));
+        } catch {
           setVolunteers([]);
         }
       } else {
-        console.log('使用云端模式');
-        // 普通用户，走Supabase云端
-        try {
-          // 先测试Supabase连接
-          const connectionOk = await testSupabaseConnection();
-          if (!connectionOk) {
-            console.error('Supabase连接失败');
-            message.error('云端连接失败，请检查网络或联系管理员');
-            setVolunteers([]);
-            setLoading(false);
-            return;
-          }
-          
-          console.log('Supabase连接正常，开始获取数据');
-          const data = await fetchVolunteers();
-          console.log('获取到的志愿者数据:', data);
-          setVolunteers(data || []);
-        } catch (e) {
-          console.error('加载云端数据失败:', e);
-          message.error('加载云端数据失败: ' + (e instanceof Error ? e.message : '未知错误'));
-          setVolunteers([]);
-        }
+        setVolunteers([]);
       }
-      setLoading(false);
-    };
+    } else {
+      console.log('使用云端模式');
+      // 普通用户，走Supabase云端
+      try {
+        // 先测试Supabase连接
+        const connectionOk = await testSupabaseConnection();
+        if (!connectionOk) {
+          console.error('Supabase连接失败');
+          message.error('云端连接失败，请检查网络或联系管理员');
+          setVolunteers([]);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Supabase连接正常，开始获取数据');
+        const data = await fetchVolunteers();
+        console.log('获取到的志愿者数据:', data);
+        setVolunteers(data || []);
+      } catch (e) {
+        console.error('加载云端数据失败:', e);
+        message.error('加载云端数据失败: ' + (e instanceof Error ? e.message : '未知错误'));
+        setVolunteers([]);
+      }
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -696,10 +697,15 @@ const VolunteerPage: React.FC = () => {
               };
 
               validData.push(volunteer);
-              // 如果是本地管理员，也保存显示版本
-              if (isLocalAdmin()) {
-                validDataForDisplay.push(volunteerForDisplay);
-              }
+              // 总是保存显示版本，用于本地显示
+              validDataForDisplay.push(volunteerForDisplay);
+              
+              // 调试信息
+              console.log(`第${index + 1}行数据转换完成:`, {
+                original: row,
+                volunteer: volunteer,
+                volunteerForDisplay: volunteerForDisplay
+              });
             } catch (error) {
               console.error(`第${index + 1}行处理错误:`, error);
               const errorMessage = error instanceof Error ? error.message : '未知错误';
@@ -730,20 +736,35 @@ const VolunteerPage: React.FC = () => {
             content: `将导入 ${validData.length} 条志愿者数据，跳过 ${skippedRows} 条空行，是否继续？`,
             onOk: async () => {
               try {
+                console.log('开始执行导入操作...');
+                console.log('当前用户是否为本地管理员:', isLocalAdmin());
+                console.log('validData数量:', validData.length);
+                console.log('validDataForDisplay数量:', validDataForDisplay.length);
+                
                 if (isLocalAdmin()) {
                   // 本地管理员，使用localStorage
+                  console.log('使用本地存储模式');
                   const newData = [...volunteers, ...validDataForDisplay];
+                  console.log('合并后的数据:', newData);
                   setVolunteers(newData);
                   localStorage.setItem('volunteerData', JSON.stringify(newData));
+                  console.log('数据已保存到localStorage');
                   message.success(`成功导入 ${validDataForDisplay.length} 条数据，跳过 ${skippedRows} 条空行！`);
                 } else {
                   // 普通用户，使用批量插入API
+                  console.log('使用云端API模式');
                   await batchAddVolunteers(validData);
                   // 重新加载数据
                   const data = await fetchVolunteers();
                   setVolunteers(data || []);
                   message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
                 }
+                
+                // 强制刷新页面数据
+                setTimeout(() => {
+                  console.log('执行数据刷新...');
+                  loadData();
+                }, 100);
               } catch (error) {
                 console.error('批量导入失败:', error);
                 message.error('批量导入失败，请重试');
