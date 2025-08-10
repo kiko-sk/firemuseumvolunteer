@@ -38,8 +38,28 @@ export async function fetchVolunteers() {
       throw error;
     }
     
-    console.log('fetchVolunteers - 成功返回数据，数量:', data?.length || 0);
-    return data || [];
+    // 将数据库中的小写字段名转换为前端期望的格式
+    const transformedData = (data || []).map(volunteer => ({
+      id: volunteer.id,
+      volunteerNo: volunteer.volunteerno,
+      name: volunteer.name,
+      phone: volunteer.phone,
+      gender: volunteer.gender,
+      age: volunteer.age,
+      type: volunteer.type,
+      serviceCount: volunteer.servicecount,
+      serviceHours: volunteer.servicehours,
+      totalscore: volunteer.totalscore,
+      redeemedscore: volunteer.redeemedscore,
+      remainingscore: volunteer.remainingscore,
+      status: volunteer.status,
+      registerdate: volunteer.registerdate,
+      lastservicedate: volunteer.lastservicedate,
+      remark: volunteer.remark
+    }));
+    
+    console.log('fetchVolunteers - 成功返回数据，数量:', transformedData.length);
+    return transformedData;
   } catch (error) {
     console.error('fetchVolunteers - 捕获到异常:', error);
     throw error;
