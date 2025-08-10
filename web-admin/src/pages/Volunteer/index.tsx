@@ -71,6 +71,9 @@ interface VolunteerData {
   type: '场馆服务' | '讲解服务';
   serviceCount: number; // 服务次数
   serviceHours: number; // 总服务时长（小时）
+  serviceScore: number; // 服务积分
+  explainScore: number; // 讲解积分
+  bonusScore: number; // 附加积分
   totalscore: number; // 当前总积分
   redeemedscore: number; // 已兑换积分
   remainingscore: number; // 剩余积分
@@ -276,22 +279,22 @@ const VolunteerPage: React.FC = () => {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>志愿者编号</div>,
       dataIndex: 'volunteerNo',
       key: 'volunteerNo',
-      width: 120,
-      render: (text) => <span style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{text}</span>
+      width: 100,
+      render: (text) => <span>{text}</span>
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>姓名</div>,
       dataIndex: 'name',
       key: 'name',
       width: 100,
-      render: (text) => <span style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{text}</span>
+      render: (text) => <span>{text}</span>
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>电话</div>,
       dataIndex: 'phone',
       key: 'phone',
       width: 120,
-      render: (text) => <span style={{ whiteSpace: 'nowrap' }}>{text}</span>
+      render: (text) => <span>{text}</span>
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>性别</div>,
@@ -329,6 +332,27 @@ const VolunteerPage: React.FC = () => {
       key: 'serviceHours',
       width: 100,
       render: (text) => <span>{text}小时</span>
+    },
+    {
+      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>服务积分</div>,
+      dataIndex: 'serviceScore',
+      key: 'serviceScore',
+      width: 80,
+      render: (text) => <span>{text || 0}</span>
+    },
+    {
+      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>讲解积分</div>,
+      dataIndex: 'explainScore',
+      key: 'explainScore',
+      width: 80,
+      render: (text) => <span>{text || 0}</span>
+    },
+    {
+      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>附加积分</div>,
+      dataIndex: 'bonusScore',
+      key: 'bonusScore',
+      width: 80,
+      render: (text) => <span>{text || 0}</span>
     },
     {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>总积分</div>,
@@ -398,8 +422,7 @@ const VolunteerPage: React.FC = () => {
       volunteerNo: '', // 新增志愿者编号
       phone: '', // 新增电话
       serviceCount: 0, // 新增服务次数
-      serviceHours2025: 0, // 新增服务时长2025
-      accumulateds: 0, // 新增累计获得积分
+      totalscore: 0, // 新增累计获得积分
       remark: ''
     });
     setModalVisible(true);
@@ -444,7 +467,6 @@ const VolunteerPage: React.FC = () => {
           服务类型: '讲解服务',
           服务次数: 10,
           总服务小时: '30小时',
-          服务时长2025: '10小时',
           服务积分: 7,
           讲解积分: 8,
           附加积分: 2,
@@ -462,7 +484,6 @@ const VolunteerPage: React.FC = () => {
           服务类型: '场馆服务',
           服务次数: 5,
           总服务小时: '24小时',
-          服务时长2025: '5小时',
           服务积分: 6,
           讲解积分: 0,
           附加积分: 0,
@@ -489,15 +510,13 @@ const VolunteerPage: React.FC = () => {
         { wch: 12 }, // 服务类型
         { wch: 10 }, // 服务次数
         { wch: 10 }, // 总服务小时
-        { wch: 10 }, // 服务时长2025
         { wch: 10 }, // 服务积分
         { wch: 10 }, // 讲解积分
         { wch: 10 }, // 附加积分
         { wch: 10 }, // 累计获得积分
         { wch: 10 }, // 已兑换积分
         { wch: 10 }, // 剩余积分
-        { wch: 30 }, // 备注
-        { wch: 10 }  // 状态
+        { wch: 30 }  // 备注
       ];
       ws['!cols'] = colWidths;
 
@@ -631,10 +650,9 @@ const VolunteerPage: React.FC = () => {
 
               // 转换数据 - 确保所有数值字段都有默认值
               const serviceHours = parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0;
-              const serviceHours2025 = parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0;
               const type = getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务';
               const lastServiceDate = getColumnValue('最后服务日期') || '';
-              const autoStatus = determineStatusByServiceHours(0, lastServiceDate); // 暂时使用0，因为serviceHours2025字段不存在
+              const autoStatus = determineStatusByServiceHours(serviceHours, lastServiceDate);
               
               // 只包含Supabase数据库中确实存在的字段，使用小写字段名
               const volunteer: any = {
@@ -646,6 +664,9 @@ const VolunteerPage: React.FC = () => {
                 type: getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务',
                 servicecount: parseInt(getColumnValue('服务次数')) || 0,
                 servicehours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
+                servicescore: parseInt(getColumnValue('服务积分')) || 0, // 服务积分
+                explainscore: parseInt(getColumnValue('讲解积分')) || 0, // 讲解积分
+                bonusscore: parseInt(getColumnValue('附加积分')) || 0, // 附加积分
                 totalscore: parseInt(getColumnValue('累计获得积分')) || 0,
                 redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
                 remainingscore: parseInt(getColumnValue('剩余积分')) || 0,
@@ -1042,13 +1063,12 @@ const VolunteerPage: React.FC = () => {
         服务类型: v.type,
         服务次数: v.serviceCount,
         总服务小时: `${v.serviceHours}小时`,
-                        服务时长2025: `${v.serviceHours}小时`,
-        服务积分: v.serviceScore,
-        讲解积分: v.explainScore,
-        // 附加积分: v.bonusScore, // 暂时注释，Supabase数据库中没有此字段
+        服务积分: v.serviceScore || 0,
+        讲解积分: v.explainScore || 0,
+        附加积分: v.bonusScore || 0,
         累计获得积分: v.totalscore,
-                  已兑换积分: v.redeemedscore,
-          剩余积分: v.remainingscore,
+        已兑换积分: v.redeemedscore,
+        剩余积分: v.remainingscore,
         备注: v.remark || '',
         状态: v.status === 'active' ? '活跃' : v.status === 'inactive' ? '非活跃' : '需考核'
       }));
@@ -1069,15 +1089,13 @@ const VolunteerPage: React.FC = () => {
         { wch: 12 }, // 服务类型
         { wch: 10 }, // 服务次数
         { wch: 10 }, // 总服务小时
-        { wch: 10 }, // 服务时长2025
         { wch: 10 }, // 服务积分
         { wch: 10 }, // 讲解积分
         { wch: 10 }, // 附加积分
         { wch: 10 }, // 累计获得积分
         { wch: 10 }, // 已兑换积分
         { wch: 10 }, // 剩余积分
-        { wch: 30 }, // 备注
-        { wch: 10 }  // 状态
+        { wch: 30 }  // 备注
       ];
       ws['!cols'] = colWidths;
 

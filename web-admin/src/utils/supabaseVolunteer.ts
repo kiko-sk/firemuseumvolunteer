@@ -49,6 +49,9 @@ export async function fetchVolunteers() {
       type: volunteer.type,
       serviceCount: volunteer.servicecount,
       serviceHours: volunteer.servicehours,
+      serviceScore: volunteer.servicescore || 0, // 服务积分
+      explainScore: volunteer.explainscore || 0, // 讲解积分
+      bonusScore: volunteer.bonusscore || 0, // 附加积分
       totalscore: volunteer.totalscore,
       redeemedscore: volunteer.redeemedscore,
       remainingscore: volunteer.remainingscore,
@@ -86,6 +89,9 @@ export async function addVolunteer(volunteer: any) {
       type: volunteer.type,
       servicecount: volunteer.serviceCount,
       servicehours: volunteer.serviceHours,
+      servicescore: volunteer.serviceScore || 0, // 服务积分
+      explainscore: volunteer.explainScore || 0, // 讲解积分
+      bonusscore: volunteer.bonusScore || 0, // 附加积分
       totalscore: volunteer.totalscore,
       redeemedscore: volunteer.redeemedscore,
       remainingscore: volunteer.remainingscore,
@@ -130,6 +136,9 @@ export async function updateVolunteer(id: string, volunteer: any) {
       type: volunteer.type,
       servicecount: volunteer.serviceCount,
       servicehours: volunteer.serviceHours,
+      servicescore: volunteer.serviceScore || 0, // 服务积分
+      explainscore: volunteer.explainScore || 0, // 讲解积分
+      bonusscore: volunteer.bonusScore || 0, // 附加积分
       totalscore: volunteer.totalscore,
       redeemedscore: volunteer.redeemedscore,
       remainingscore: volunteer.remainingscore,
@@ -230,6 +239,9 @@ export async function batchAddVolunteers(volunteers: any[]) {
         type: volunteer.type,
         servicecount: volunteer.serviceCount,
         servicehours: volunteer.serviceHours,
+        servicescore: volunteer.serviceScore || 0, // 服务积分
+        explainscore: volunteer.explainScore || 0, // 讲解积分
+        bonusscore: volunteer.bonusScore || 0, // 附加积分
         totalscore: volunteer.totalscore,
         redeemedscore: volunteer.redeemedscore,
         remainingscore: volunteer.remainingscore,
