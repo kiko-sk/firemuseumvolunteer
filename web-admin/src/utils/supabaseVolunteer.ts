@@ -41,24 +41,25 @@ export async function fetchVolunteers() {
     // 将数据库中的小写字段名转换为前端期望的格式
     const transformedData = (data || []).map(volunteer => ({
       id: volunteer.id,
-      volunteerNo: volunteer.volunteerno,
-      name: volunteer.name,
-      phone: volunteer.phone,
-      gender: volunteer.gender,
-      age: volunteer.age,
-      type: volunteer.type,
-      serviceCount: volunteer.servicecount,
-      serviceHours: volunteer.servicehours,
+      volunteerNo: volunteer.volunteerno || '',
+      name: volunteer.name || '',
+      phone: volunteer.phone || '',
+      gender: volunteer.gender || '',
+      age: volunteer.age || 0,
+      type: volunteer.type || '场馆服务',
+      serviceCount: volunteer.servicecount || 0,
+      serviceHours: volunteer.servicehours || 0,
+      serviceHours2025: volunteer.servicehours2025 || 0, // 服务时长2025
       serviceScore: volunteer.servicescore || 0, // 服务积分
       explainScore: volunteer.explainscore || 0, // 讲解积分
       bonusScore: volunteer.bonusscore || 0, // 附加积分
-      totalscore: volunteer.totalscore,
-      redeemedscore: volunteer.redeemedscore,
-      remainingscore: volunteer.remainingscore,
-      status: volunteer.status,
-      registerdate: volunteer.registerdate,
-      lastservicedate: volunteer.lastservicedate,
-      remark: volunteer.remark
+      totalscore: volunteer.totalscore || 0,
+      redeemedscore: volunteer.redeemedscore || 0,
+      remainingscore: volunteer.remainingscore || 0,
+      status: volunteer.status || 'active',
+      registerdate: volunteer.registerdate || '',
+      lastservicedate: volunteer.lastservicedate || '',
+      remark: volunteer.remark || ''
     }));
     
     console.log('fetchVolunteers - 成功返回数据，数量:', transformedData.length);
@@ -81,24 +82,25 @@ export async function addVolunteer(volunteer: any) {
     
     // 转换字段名为小写以匹配数据库结构
     const cleanVolunteer = {
-      volunteerno: volunteer.volunteerNo,
-      name: volunteer.name,
-      phone: volunteer.phone,
-      gender: volunteer.gender,
-      age: volunteer.age,
-      type: volunteer.type,
-      servicecount: volunteer.serviceCount,
-      servicehours: volunteer.serviceHours,
+      volunteerno: volunteer.volunteerNo || '',
+      name: volunteer.name || '',
+      phone: volunteer.phone || '',
+      gender: volunteer.gender || '',
+      age: volunteer.age || 0,
+      type: volunteer.type || '场馆服务',
+      servicecount: volunteer.serviceCount || 0,
+      servicehours: volunteer.serviceHours || 0,
+      servicehours2025: volunteer.serviceHours2025 || 0, // 服务时长2025
       servicescore: volunteer.serviceScore || 0, // 服务积分
       explainscore: volunteer.explainScore || 0, // 讲解积分
       bonusscore: volunteer.bonusScore || 0, // 附加积分
-      totalscore: volunteer.totalscore,
-      redeemedscore: volunteer.redeemedscore,
-      remainingscore: volunteer.remainingscore,
-      status: volunteer.status,
-      registerdate: volunteer.registerdate,
-      lastservicedate: volunteer.lastservicedate,
-      remark: volunteer.remark,
+      totalscore: volunteer.totalscore || 0,
+      redeemedscore: volunteer.redeemedscore || 0,
+      remainingscore: volunteer.remainingscore || 0,
+      status: volunteer.status || 'active',
+      registerdate: volunteer.registerdate || '',
+      lastservicedate: volunteer.lastservicedate || '',
+      remark: volunteer.remark || '',
       user_id: userId
     };
     
@@ -128,24 +130,25 @@ export async function updateVolunteer(id: string, volunteer: any) {
     
     // 转换字段名为小写以匹配数据库结构
     const cleanVolunteer = {
-      volunteerno: volunteer.volunteerNo,
-      name: volunteer.name,
-      phone: volunteer.phone,
-      gender: volunteer.gender,
-      age: volunteer.age,
-      type: volunteer.type,
-      servicecount: volunteer.serviceCount,
-      servicehours: volunteer.serviceHours,
+      volunteerno: volunteer.volunteerNo || '',
+      name: volunteer.name || '',
+      phone: volunteer.phone || '',
+      gender: volunteer.gender || '',
+      age: volunteer.age || 0,
+      type: volunteer.type || '场馆服务',
+      servicecount: volunteer.serviceCount || 0,
+      servicehours: volunteer.serviceHours || 0,
+      servicehours2025: volunteer.serviceHours2025 || 0, // 服务时长2025
       servicescore: volunteer.serviceScore || 0, // 服务积分
       explainscore: volunteer.explainScore || 0, // 讲解积分
       bonusscore: volunteer.bonusScore || 0, // 附加积分
-      totalscore: volunteer.totalscore,
-      redeemedscore: volunteer.redeemedscore,
-      remainingscore: volunteer.remainingscore,
-      status: volunteer.status,
-      registerdate: volunteer.registerdate,
-      lastservicedate: volunteer.lastservicedate,
-      remark: volunteer.remark,
+      totalscore: volunteer.totalscore || 0,
+      redeemedscore: volunteer.redeemedscore || 0,
+      remainingscore: volunteer.remainingscore || 0,
+      status: volunteer.status || 'active',
+      registerdate: volunteer.registerdate || '',
+      lastservicedate: volunteer.lastservicedate || '',
+      remark: volunteer.remark || '',
       user_id: userId
     };
     
@@ -231,24 +234,25 @@ export async function batchAddVolunteers(volunteers: any[]) {
     const volunteersWithUserId = volunteers.map(volunteer => {
       // 创建一个新对象，只包含Supabase数据库中确实存在的字段，使用小写字段名
       const cleanVolunteer: any = {
-        volunteerno: volunteer.volunteerNo,
-        name: volunteer.name,
-        phone: volunteer.phone,
-        gender: volunteer.gender,
-        age: volunteer.age,
-        type: volunteer.type,
-        servicecount: volunteer.serviceCount,
-        servicehours: volunteer.serviceHours,
+        volunteerno: volunteer.volunteerNo || '',
+        name: volunteer.name || '',
+        phone: volunteer.phone || '',
+        gender: volunteer.gender || '',
+        age: volunteer.age || 0,
+        type: volunteer.type || '场馆服务',
+        servicecount: volunteer.serviceCount || 0,
+        servicehours: volunteer.serviceHours || 0,
+        servicehours2025: volunteer.serviceHours2025 || 0, // 服务时长2025
         servicescore: volunteer.serviceScore || 0, // 服务积分
         explainscore: volunteer.explainScore || 0, // 讲解积分
         bonusscore: volunteer.bonusScore || 0, // 附加积分
-        totalscore: volunteer.totalscore,
-        redeemedscore: volunteer.redeemedscore,
-        remainingscore: volunteer.remainingscore,
-        status: volunteer.status,
-        registerdate: volunteer.registerdate,
-        lastservicedate: volunteer.lastservicedate,
-        remark: volunteer.remark,
+        totalscore: volunteer.totalscore || 0,
+        redeemedscore: volunteer.redeemedscore || 0,
+        remainingscore: volunteer.remainingscore || 0,
+        status: volunteer.status || 'active',
+        registerdate: volunteer.registerdate || '',
+        lastservicedate: volunteer.lastservicedate || '',
+        remark: volunteer.remark || '',
         user_id: userId
       };
       

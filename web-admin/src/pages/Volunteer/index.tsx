@@ -119,7 +119,13 @@ const VolunteerPage: React.FC = () => {
       const savedData = localStorage.getItem('volunteerData');
       if (savedData) {
         try {
-          setVolunteers(JSON.parse(savedData));
+          const parsedData = JSON.parse(savedData);
+          // 确保所有数据都有serviceHours2025字段
+          const migratedData = parsedData.map((volunteer: any) => ({
+            ...volunteer,
+            serviceHours2025: volunteer.serviceHours2025 || 0
+          }));
+          setVolunteers(migratedData);
         } catch {
           setVolunteers([]);
         }
@@ -143,7 +149,12 @@ const VolunteerPage: React.FC = () => {
         console.log('Supabase连接正常，开始获取数据');
         const data = await fetchVolunteers();
         console.log('获取到的志愿者数据:', data);
-        setVolunteers(data || []);
+        // 确保所有数据都有serviceHours2025字段
+        const migratedData = (data || []).map((volunteer: any) => ({
+          ...volunteer,
+          serviceHours2025: volunteer.serviceHours2025 || 0
+        }));
+        setVolunteers(migratedData);
       } catch (e) {
         console.error('加载云端数据失败:', e);
         message.error('加载云端数据失败: ' + (e instanceof Error ? e.message : '未知错误'));
@@ -164,13 +175,23 @@ const VolunteerPage: React.FC = () => {
       if (isLocalAdmin()) {
         // 本地
         const newData = [...volunteers, volunteer];
-        setVolunteers(newData);
-        localStorage.setItem('volunteerData', JSON.stringify(newData));
+        // 确保所有数据都有serviceHours2025字段
+        const migratedData = newData.map((volunteer: any) => ({
+          ...volunteer,
+          serviceHours2025: volunteer.serviceHours2025 || 0
+        }));
+        setVolunteers(migratedData);
+        localStorage.setItem('volunteerData', JSON.stringify(migratedData));
       } else {
         // 云端
         await addVolunteer(volunteer);
         const data = await fetchVolunteers();
-        setVolunteers(data || []);
+        // 确保所有数据都有serviceHours2025字段
+        const migratedData = (data || []).map((volunteer: any) => ({
+          ...volunteer,
+          serviceHours2025: volunteer.serviceHours2025 || 0
+        }));
+        setVolunteers(migratedData);
       }
       message.success('添加成功');
     } catch (e) {
@@ -186,12 +207,22 @@ const VolunteerPage: React.FC = () => {
     try {
       if (isLocalAdmin()) {
         const newData = volunteers.map(v => v.id === id ? { ...v, ...volunteer } : v);
-        setVolunteers(newData);
-        localStorage.setItem('volunteerData', JSON.stringify(newData));
+        // 确保所有数据都有serviceHours2025字段
+        const migratedData = newData.map((volunteer: any) => ({
+          ...volunteer,
+          serviceHours2025: volunteer.serviceHours2025 || 0
+        }));
+        setVolunteers(migratedData);
+        localStorage.setItem('volunteerData', JSON.stringify(migratedData));
       } else {
         await updateVolunteer(id, volunteer);
         const data = await fetchVolunteers();
-        setVolunteers(data || []);
+        // 确保所有数据都有serviceHours2025字段
+        const migratedData = (data || []).map((volunteer: any) => ({
+          ...volunteer,
+          serviceHours2025: volunteer.serviceHours2025 || 0
+        }));
+        setVolunteers(migratedData);
       }
       message.success('编辑成功');
     } catch (e) {
@@ -207,12 +238,22 @@ const VolunteerPage: React.FC = () => {
     try {
       if (isLocalAdmin()) {
         const newData = volunteers.filter(v => v.id !== id);
-        setVolunteers(newData);
-        localStorage.setItem('volunteerData', JSON.stringify(newData));
+        // 确保所有数据都有serviceHours2025字段
+        const migratedData = newData.map((volunteer: any) => ({
+          ...volunteer,
+          serviceHours2025: volunteer.serviceHours2025 || 0
+        }));
+        setVolunteers(migratedData);
+        localStorage.setItem('volunteerData', JSON.stringify(migratedData));
       } else {
         await deleteVolunteer(id);
         const data = await fetchVolunteers();
-        setVolunteers(data || []);
+        // 确保所有数据都有serviceHours2025字段
+        const migratedData = (data || []).map((volunteer: any) => ({
+          ...volunteer,
+          serviceHours2025: volunteer.serviceHours2025 || 0
+        }));
+        setVolunteers(migratedData);
       }
       message.success('删除成功');
     } catch (e) {
@@ -225,7 +266,12 @@ const VolunteerPage: React.FC = () => {
   // 保存数据到localStorage
   const saveDataToStorage = (data: VolunteerData[]) => {
     try {
-      localStorage.setItem('volunteerData', JSON.stringify(data));
+      // 确保所有数据都有serviceHours2025字段
+      const migratedData = data.map((volunteer: any) => ({
+        ...volunteer,
+        serviceHours2025: volunteer.serviceHours2025 || 0
+      }));
+      localStorage.setItem('volunteerData', JSON.stringify(migratedData));
       setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
     } catch (error) {
       console.error('保存数据失败:', error);
@@ -336,6 +382,13 @@ const VolunteerPage: React.FC = () => {
       render: (text) => <span>{text}小时</span>
     },
     {
+      title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>服务时长2025</div>,
+      dataIndex: 'serviceHours2025',
+      key: 'serviceHours2025',
+      width: 120,
+      render: (text) => <span style={{ color: text > 0 ? '#52c41a' : '#666' }}>{text || 0}小时</span>
+    },
+    {
       title: <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>服务积分</div>,
       dataIndex: 'serviceScore',
       key: 'serviceScore',
@@ -420,6 +473,7 @@ const VolunteerPage: React.FC = () => {
     form.setFieldsValue({
       status: 'active',
       serviceHours: 0,
+      serviceHours2025: 0, // 新增服务时长2025
       explainScore: 0,
       volunteerNo: '', // 新增志愿者编号
       phone: '', // 新增电话
@@ -446,7 +500,19 @@ const VolunteerPage: React.FC = () => {
       title: '确认删除',
       content: '确定要删除这个志愿者吗？',
       onOk: () => {
-        setVolunteers(prev => prev.filter(v => v.id !== id));
+        const newData = volunteers.filter(v => v.id !== id);
+        setVolunteers(newData);
+        
+        // 保存到本地存储
+        if (isLocalAdmin()) {
+          // 确保所有数据都有serviceHours2025字段
+          const migratedData = newData.map((volunteer: any) => ({
+            ...volunteer,
+            serviceHours2025: volunteer.serviceHours2025 || 0
+          }));
+          localStorage.setItem('volunteerData', JSON.stringify(migratedData));
+        }
+        
         message.success('删除成功');
       }
     });
@@ -751,9 +817,14 @@ const VolunteerPage: React.FC = () => {
                   // 本地管理员，使用localStorage
                   console.log('使用本地存储模式');
                   const newData = [...volunteers, ...validDataForDisplay];
-                  console.log('合并后的数据:', newData);
-                  setVolunteers(newData);
-                  localStorage.setItem('volunteerData', JSON.stringify(newData));
+                  // 确保所有数据都有serviceHours2025字段
+                  const migratedData = newData.map((volunteer: any) => ({
+                    ...volunteer,
+                    serviceHours2025: volunteer.serviceHours2025 || 0
+                  }));
+                  console.log('合并后的数据:', migratedData);
+                  setVolunteers(migratedData);
+                  localStorage.setItem('volunteerData', JSON.stringify(migratedData));
                   console.log('数据已保存到localStorage');
                   message.success(`成功导入 ${validDataForDisplay.length} 条数据，跳过 ${skippedRows} 条空行！`);
                 } else {
@@ -762,7 +833,12 @@ const VolunteerPage: React.FC = () => {
                   await batchAddVolunteers(validData);
                   // 重新加载数据
                   const data = await fetchVolunteers();
-                  setVolunteers(data || []);
+                  // 确保所有数据都有serviceHours2025字段
+                  const migratedData = (data || []).map((volunteer: any) => ({
+                    ...volunteer,
+                    serviceHours2025: volunteer.serviceHours2025 || 0
+                  }));
+                  setVolunteers(migratedData);
                   message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
                 }
                 
@@ -802,8 +878,13 @@ const VolunteerPage: React.FC = () => {
           if (isLocalAdmin()) {
             // 本地管理员，使用localStorage
             const newData = volunteers.filter(v => !selectedRowKeys.includes(v.id));
-            setVolunteers(newData);
-            localStorage.setItem('volunteerData', JSON.stringify(newData));
+            // 确保所有数据都有serviceHours2025字段
+            const migratedData = newData.map((volunteer: any) => ({
+              ...volunteer,
+              serviceHours2025: volunteer.serviceHours2025 || 0
+            }));
+            setVolunteers(migratedData);
+            localStorage.setItem('volunteerData', JSON.stringify(migratedData));
             setSelectedRowKeys([]);
             message.success('删除成功');
           } else {
@@ -811,7 +892,12 @@ const VolunteerPage: React.FC = () => {
             await batchDeleteVolunteers(selectedRowKeys.map(String));
             // 重新加载数据
             const data = await fetchVolunteers();
-            setVolunteers(data || []);
+            // 确保所有数据都有serviceHours2025字段
+            const migratedData = (data || []).map((volunteer: any) => ({
+              ...volunteer,
+              serviceHours2025: volunteer.serviceHours2025 || 0
+            }));
+            setVolunteers(migratedData);
             setSelectedRowKeys([]);
             message.success('删除成功');
           }
@@ -832,13 +918,19 @@ const VolunteerPage: React.FC = () => {
         try {
           const updatedData = volunteers.map(volunteer => ({
             ...volunteer,
+            serviceHours2025: volunteer.serviceHours2025 || 0,
             status: determineStatusByServiceHours(volunteer.serviceHours, volunteer.lastservicedate)
           }));
           
           if (isLocalAdmin()) {
             // 本地管理员，使用localStorage
-            setVolunteers(updatedData);
-            localStorage.setItem('volunteerData', JSON.stringify(updatedData));
+            // 确保所有数据都有serviceHours2025字段
+            const migratedData = updatedData.map((volunteer: any) => ({
+              ...volunteer,
+              serviceHours2025: volunteer.serviceHours2025 || 0
+            }));
+            setVolunteers(migratedData);
+            localStorage.setItem('volunteerData', JSON.stringify(migratedData));
             message.success('状态更新成功');
           } else {
             // 普通用户，批量更新Supabase数据
@@ -847,7 +939,12 @@ const VolunteerPage: React.FC = () => {
             }
             // 重新加载数据
             const data = await fetchVolunteers();
-            setVolunteers(data || []);
+            // 确保所有数据都有serviceHours2025字段
+            const migratedData = (data || []).map((volunteer: any) => ({
+              ...volunteer,
+              serviceHours2025: volunteer.serviceHours2025 || 0
+            }));
+            setVolunteers(migratedData);
             message.success('状态更新成功');
           }
         } catch (error) {
@@ -904,6 +1001,7 @@ const VolunteerPage: React.FC = () => {
                 type: '场馆服务' as const,
                 serviceCount: 10,
                 serviceHours: 50,
+                serviceHours2025: 25,
                 serviceScore: 100,
                 explainScore: 0,
                 bonusScore: 20,
@@ -925,6 +1023,7 @@ const VolunteerPage: React.FC = () => {
                 type: '讲解服务' as const,
                 serviceCount: 15,
                 serviceHours: 80,
+                serviceHours2025: 40,
                 serviceScore: 150,
                 explainScore: 50,
                 bonusScore: 30,
@@ -937,8 +1036,13 @@ const VolunteerPage: React.FC = () => {
                 remark: '示例数据'
               }
             ];
-            setVolunteers(defaultData);
-            localStorage.setItem('volunteerData', JSON.stringify(defaultData));
+            // 确保所有数据都有serviceHours2025字段
+            const migratedData = defaultData.map((volunteer: any) => ({
+              ...volunteer,
+              serviceHours2025: volunteer.serviceHours2025 || 0
+            }));
+            setVolunteers(migratedData);
+            localStorage.setItem('volunteerData', JSON.stringify(migratedData));
             message.success('已重置为默认数据');
           } else {
             // 普通用户，先清空再添加默认数据
@@ -958,6 +1062,7 @@ const VolunteerPage: React.FC = () => {
                 type: '场馆服务' as const,
                 serviceCount: 10,
                 serviceHours: 50,
+                serviceHours2025: 25,
                 serviceScore: 100,
                 explainScore: 0,
                 bonusScore: 20,
@@ -979,6 +1084,7 @@ const VolunteerPage: React.FC = () => {
                 type: '讲解服务' as const,
                 serviceCount: 15,
                 serviceHours: 80,
+                serviceHours2025: 40,
                 serviceScore: 150,
                 explainScore: 50,
                 bonusScore: 30,
@@ -997,7 +1103,12 @@ const VolunteerPage: React.FC = () => {
             }
             
             const newData = await fetchVolunteers();
-            setVolunteers(newData || []);
+            // 确保所有数据都有serviceHours2025字段
+            const migratedData = (newData || []).map((volunteer: any) => ({
+              ...volunteer,
+              serviceHours2025: volunteer.serviceHours2025 || 0
+            }));
+            setVolunteers(migratedData);
             message.success('已重置为默认数据');
           }
         } catch (error) {
@@ -1051,8 +1162,13 @@ const VolunteerPage: React.FC = () => {
                 try {
                   if (isLocalAdmin()) {
                     // 本地管理员，使用localStorage
-                    setVolunteers(backupData.data);
-                    localStorage.setItem('volunteerData', JSON.stringify(backupData.data));
+                    // 确保所有数据都有serviceHours2025字段
+                    const migratedData = backupData.data.map((volunteer: any) => ({
+                      ...volunteer,
+                      serviceHours2025: volunteer.serviceHours2025 || 0
+                    }));
+                    setVolunteers(migratedData);
+                    localStorage.setItem('volunteerData', JSON.stringify(migratedData));
                     message.success('数据备份导入成功！');
                   } else {
                     // 普通用户，先清空再导入到Supabase
@@ -1062,11 +1178,21 @@ const VolunteerPage: React.FC = () => {
                     }
                     
                     for (const volunteer of backupData.data) {
-                      await addVolunteer(volunteer);
+                      // 确保数据有serviceHours2025字段
+                      const migratedVolunteer = {
+                        ...volunteer,
+                        serviceHours2025: volunteer.serviceHours2025 || 0
+                      };
+                      await addVolunteer(migratedVolunteer);
                     }
                     
                     const newData = await fetchVolunteers();
-                    setVolunteers(newData || []);
+                    // 确保所有数据都有serviceHours2025字段
+                    const migratedData = (newData || []).map((volunteer: any) => ({
+                      ...volunteer,
+                      serviceHours2025: volunteer.serviceHours2025 || 0
+                    }));
+                    setVolunteers(migratedData);
                     message.success('数据备份导入成功！');
                   }
                 } catch (error) {
@@ -1101,6 +1227,7 @@ const VolunteerPage: React.FC = () => {
         服务类型: v.type,
         服务次数: v.serviceCount,
         总服务小时: `${v.serviceHours}小时`,
+        服务时长2025: `${v.serviceHours2025 || 0}小时`,
         服务积分: v.serviceScore || 0,
         讲解积分: v.explainScore || 0,
         附加积分: v.bonusScore || 0,
@@ -1229,6 +1356,7 @@ const VolunteerPage: React.FC = () => {
         type: values.type,
         serviceCount: parseInt(values.serviceCount) || 0, // 新增服务次数
         serviceHours: serviceHours,
+        serviceHours2025: parseInt(values.serviceHours2025) || 0, // 新增服务时长2025
         serviceScore: serviceScore,
         explainScore: explainScore,
         bonusScore: values.bonusScore || 0, // 附加积分
@@ -1247,6 +1375,22 @@ const VolunteerPage: React.FC = () => {
       } else {
         setVolunteers(prev => [...prev, newVolunteer]);
         message.success('添加成功');
+      }
+      
+      // 保存到本地存储
+      if (isLocalAdmin()) {
+        const currentData = volunteers;
+        const updatedData = editingVolunteer 
+          ? currentData.map(v => v.id === editingVolunteer.id ? { ...v, ...newVolunteer } : v)
+          : [...currentData, newVolunteer];
+        
+        // 确保所有数据都有serviceHours2025字段
+        const migratedData = updatedData.map((volunteer: any) => ({
+          ...volunteer,
+          serviceHours2025: volunteer.serviceHours2025 || 0
+        }));
+        
+        localStorage.setItem('volunteerData', JSON.stringify(migratedData));
       }
       
       setModalVisible(false);
@@ -1925,9 +2069,7 @@ const VolunteerPage: React.FC = () => {
           onFinish={handleSubmit}
           initialValues={editingVolunteer ? {
             ...editingVolunteer,
-            lastexplaindat: editingVolunteer.lastexplaindat ? dayjs(editingVolunteer.lastexplaindat) : null,
-            serviceHours2025: editingVolunteer.serviceHours || 0, // 新增服务时长2025
-            accumulateds: editingVolunteer.totalscore || 0, // 新增累计获得积分
+            serviceHours2025: editingVolunteer.serviceHours2025 || 0, // 服务时长2025
           } : {
             status: 'active',
             serviceHours: 0,
@@ -1937,7 +2079,7 @@ const VolunteerPage: React.FC = () => {
             phone: '', // 新增电话
             serviceCount: 0, // 新增服务次数
             serviceHours2025: 0, // 新增服务时长2025
-            accumulateds: 0, // 新增累计获得积分
+            totalscore: 0, // 新增累计获得积分
             remark: ''
           }}
         >

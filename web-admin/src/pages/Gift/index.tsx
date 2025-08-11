@@ -42,6 +42,9 @@ import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { fetchGifts, addGift, updateGift, deleteGift, batchAddGifts, batchDeleteGifts, clearAllGifts } from '../../utils/supabaseGift';
+import DataUploadFix from '../../utils/dataUploadFix';
+import { createGiftTemplate } from '../../utils/createGiftTemplate';
+import { testDataUpload } from '../../utils/testDataUpload';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -253,41 +256,8 @@ const GiftPage: React.FC = () => {
 
   // 下载导入模板
   const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        礼品名称: '消防主题T恤',
-        类别: '服装',
-        所需积分: 500,
-        库存: 50,
-        描述: '印有消防主题图案的舒适T恤',
-        状态: '上架'
-      },
-      {
-        礼品名称: '消防知识书籍',
-        类别: '书籍',
-        所需积分: 300,
-        库存: 30,
-        描述: '消防安全知识普及读物',
-        状态: '上架'
-      },
-      {
-        礼品名称: '消防车模型',
-        类别: '玩具',
-        所需积分: 200,
-        库存: 100,
-        描述: '精美的消防车玩具模型',
-        状态: '上架'
-      }
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '礼品导入模板');
-    
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `礼品导入模板_${dayjs().format('YYYY-MM-DD')}.xlsx`);
-    
+    // 使用新的模板工具
+    createGiftTemplate();
     message.success('模板下载成功！');
   };
 
@@ -296,175 +266,92 @@ const GiftPage: React.FC = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.xlsx,.xls';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const data = new Uint8Array(event.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      try {
+        // 使用修复工具处理Excel导入
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const data = new Uint8Array(event.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-          const validData: any[] = [];
-          const errors: string[] = [];
-          let skippedRows = 0;
-
-          // 调试：打印所有列名
-          if (jsonData.length > 0) {
-            console.log('Excel表格的列名:', Object.keys(jsonData[0] as object));
-          }
-
-          // 增强的获取列值函数
-          const getColumnValue = (sourceRow: any, columnName: string, isNumeric: boolean = false) => {
-            const possibleNames = [
-              columnName,
-              columnName.trim(),
-              columnName.replace(/\s+/g, ''),
-              columnName.replace(/\s+/g, ' ').trim()
-            ];
-
-            for (const name of possibleNames) {
-              if (sourceRow[name] !== undefined && sourceRow[name] !== null && sourceRow[name] !== '') {
-                return sourceRow[name];
-              }
+            console.log('Excel解析完成，数据行数:', jsonData.length);
+            if (jsonData.length > 0) {
+              console.log('Excel表格的列名:', Object.keys(jsonData[0] as object));
             }
-            return isNumeric ? 0 : '';
-          };
-          
-          jsonData.forEach((row: any, index: number) => {
-            try {
-              
-              // 检查是否为完全空行（所有字段都为空）
-              const allFieldsEmpty = Object.values(row).every(value => 
-                value === null || value === undefined || value === ''
-              );
-              
-              // 如果是完全空行，直接跳过，不报错
-              if (allFieldsEmpty) {
-                console.log(`第${index + 1}行为空行，已跳过`);
-                skippedRows++;
-                return;
-              }
-              
-              // 获取必填字段的值
-              const name = getColumnValue(row, '礼品名称');
-              const category = getColumnValue(row, '类别');
-              const points = parseInt(getColumnValue(row, '所需积分', true) as string) || 0;
-              const stock = parseInt(getColumnValue(row, '库存', true) as string) || 0;
-              
-              // 验证必填字段
-              if (!name || !category || points <= 0) {
-                console.error(`第${index + 1}行缺少必填字段:`, {
-                  '礼品名称': name,
-                  '类别': category,
-                  '所需积分': points,
-                  '可用字段': Object.keys(row)
-                });
-                errors.push(`第${index + 1}行：礼品名称、类别和所需积分为必填项`);
-                return;
-              }
 
-              // 验证类别格式 - 移除限制，允许任意类别
-              if (!category) {
-                errors.push(`第${index + 1}行：类别不能为空`);
-                return;
-              }
+            // 使用修复工具处理数据
+            const { validData, errors, skippedRows } = DataUploadFix.fixExcelData(jsonData);
 
-              // 验证积分和库存
-              if (points < 1) {
-                errors.push(`第${index + 1}行：所需积分必须大于0`);
-                return;
-              }
+            console.log('数据修复结果:', { validData: validData.length, errors: errors.length, skippedRows });
 
-              if (stock < 0) {
-                errors.push(`第${index + 1}行：库存不能为负数`);
-                return;
-              }
-
-              // 转换数据
-              const status = getColumnValue(row, '状态') === '下架' ? 'inactive' : 'active';
-              const description = getColumnValue(row, '描述') as string;
-              
-              // 构造 gift 对象时不包含 id 字段，交由数据库自动生成
-              const gift = {
-                name: getColumnValue(row, '礼品名称') as string,
-                category: getColumnValue(row, '类别') as string,
-                points: parseInt(getColumnValue(row, '所需积分', true) as string) || 0,
-                stock: parseInt(getColumnValue(row, '库存', true) as string) || 0,
-                exchanged: 0, // 新导入的礼品，已兑换数量为0
-                image: '', // 新导入的礼品，暂时没有图片
-                description: getColumnValue(row, '描述') as string,
-                status: getColumnValue(row, '状态') === '下架' ? 'inactive' : 'active',
-                createTime: dayjs().format('YYYY-MM-DD'),
-                updateTime: dayjs().format('YYYY-MM-DD')
-              };
-              // gift 对象本身没有 id 字段，直接 push 即可
-              console.log('handleBatchImport - 处理后的 gift:', gift);
-              validData.push(gift);
-            } catch (error) {
-              console.error(`第${index + 1}行处理错误:`, error);
-              const errorMessage = error instanceof Error ? error.message : '未知错误';
-              errors.push(`第${index + 1}行：数据格式错误 - ${errorMessage}`);
+            if (errors.length > 0) {
+              Modal.error({
+                title: '导入失败',
+                content: (
+                  <div>
+                    <p>以下数据存在问题：</p>
+                    <ul>
+                      {errors.map((error, index) => (
+                        <li key={index} style={{ color: 'red' }}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              });
+              return;
             }
-          });
 
-          console.log('导入验证结果:', { validData, errors, skippedRows });
+            if (validData.length === 0) {
+              message.error('没有有效的数据可以导入');
+              return;
+            }
 
-          if (errors.length > 0) {
-            Modal.error({
-              title: '导入失败',
-              content: (
-                <div>
-                  <p>以下数据存在问题：</p>
-                  <ul>
-                    {errors.map((error, index) => (
-                      <li key={index} style={{ color: 'red' }}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            });
-          return;
-          }
-
-          // 确认导入
-          Modal.confirm({
-            title: '确认导入',
-            content: `将导入 ${validData.length} 条礼品数据，跳过 ${skippedRows} 条空行，是否继续？`,
-            onOk: async () => {
-              try {
-                if (isLocalAdmin()) {
-                  // 本地管理员，使用localStorage
-                  const newData = [...gifts, ...validData];
-                  setGifts(newData);
-                  localStorage.setItem('giftData', JSON.stringify(newData));
-                  setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
-                } else {
-                  // 普通用户，使用批量插入API
-                  console.log('开始批量插入礼品:', validData);
-                  await batchAddGifts(validData);
-                  // 重新加载数据
-                  const data = await fetchGifts();
-                  setGifts(data || []);
+            // 确认导入
+            Modal.confirm({
+              title: '确认导入',
+              content: `将导入 ${validData.length} 条礼品数据，跳过 ${skippedRows} 条空行，是否继续？`,
+              onOk: async () => {
+                try {
+                  if (isLocalAdmin()) {
+                    // 本地管理员，使用localStorage
+                    const newData = [...gifts, ...validData];
+                    setGifts(newData);
+                    localStorage.setItem('giftData', JSON.stringify(newData));
+                    setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
+                    message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
+                  } else {
+                    // 普通用户，使用修复工具上传到Supabase
+                    console.log('开始使用修复工具上传礼品:', validData);
+                    await DataUploadFix.uploadToSupabase(validData);
+                    // 重新加载数据
+                    const data = await fetchGifts();
+                    setGifts(data || []);
+                    message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
+                  }
+                } catch (error) {
+                  console.error('批量导入失败:', error);
+                  message.error(`批量导入失败: ${error instanceof Error ? error.message : '未知错误'}`);
                 }
-                message.success(`成功导入 ${validData.length} 条数据，跳过 ${skippedRows} 条空行！`);
-              } catch (error) {
-                console.error('批量导入失败:', error);
-                message.error(`批量导入失败: ${error instanceof Error ? error.message : '未知错误'}`);
               }
-            }
-          });
+            });
 
-        } catch (error) {
-          console.error('导入错误:', error);
-          message.error('文件格式错误，请检查Excel文件');
-        }
-      };
-      reader.readAsArrayBuffer(file);
+          } catch (error) {
+            console.error('Excel处理错误:', error);
+            message.error('Excel文件处理失败，请检查文件格式');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } catch (error) {
+        console.error('导入错误:', error);
+        message.error('文件读取失败，请检查文件');
+      }
     };
     input.click();
   };
@@ -1044,6 +931,13 @@ const GiftPage: React.FC = () => {
               onClick={handleBatchImport}
             >
               批量导入
+            </Button>
+            <Button 
+              icon={<HistoryOutlined />} 
+              onClick={testDataUpload}
+              title="测试数据上传功能"
+            >
+              测试上传
             </Button>
             <Button 
               icon={<ExportOutlined />} 
