@@ -626,6 +626,34 @@ const VolunteerPage: React.FC = () => {
           const errors: string[] = [];
           let skippedRows = 0; // 统计跳过的空行数量
           
+          // 1) 全局必填列校验（表头）
+          const requiredColumnsAll = [
+            '志愿者编号','姓名','性别'
+          ];
+          const availableColumnsSet = new Set<string>();
+          jsonData.forEach((row: any) => {
+            Object.keys(row || {}).forEach(k => availableColumnsSet.add(String(k).trim()));
+          });
+          const availableColumns = Array.from(availableColumnsSet);
+          const missingColumns = requiredColumnsAll.filter(c => !availableColumnsSet.has(c));
+          if (missingColumns.length > 0) {
+            Modal.error({
+              title: '导入失败（缺少必填列）',
+              content: (
+                <div>
+                  <p>缺少以下必填列：</p>
+                  <ul>
+                    {missingColumns.map(c => (<li key={c} style={{ color: 'red' }}>{c}</li>))}
+                  </ul>
+                  <p>Excel中检测到的列：</p>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{availableColumns.join('，')}</div>
+                  <p>请先点击"下载模板"，按模板格式补齐列后再导入。</p>
+                </div>
+              )
+            });
+            return; // 直接终止导入
+          }
+          
           // 创建列名映射，处理可能的格式问题
           const createColumnMapping = (row: any) => {
             const mapping: { [key: string]: string } = {};
@@ -641,18 +669,20 @@ const VolunteerPage: React.FC = () => {
           jsonData.forEach((row: any, index: number) => {
             try {
               
-              // 处理空值：将所有空值、null、undefined转换为空字符串或0
+              // 处理空值：将所有空值、null、undefined转换为空字符串
               const safeRow = Object.keys(row).reduce((acc, key) => {
                 const value = row[key];
-                if (value === null || value === undefined || value === '') {
-                  // 数字字段默认为0，字符串字段默认为空字符串
-                  const numericFields = ['年龄', '服务次数', '总服务小时', '服务时长2025', '服务积分', '讲解积分', '附加积分', '累计获得积分', '总积分', '已兑换积分', '剩余积分'];
-                  acc[key] = numericFields.includes(key) ? 0 : '';
+                if (value === null || value === undefined) {
+                  acc[key] = '';
                 } else {
                   acc[key] = value;
                 }
                 return acc;
               }, {} as any);
+              // 2) 行级必填值校验（各列值非空、数值列为数字）
+              const requiredColumnsPerRow = [
+                '志愿者编号','姓名','性别'
+              ];
               
               // 检查是否为完全空行（所有字段都为空）
               const allFieldsEmpty = Object.values(safeRow).every(value => 
@@ -677,14 +707,39 @@ const VolunteerPage: React.FC = () => {
                 ];
                 
                 for (const name of possibleNames) {
-                  if (row[name] !== undefined) {
-                    return row[name];
+                  if (safeRow[name] !== undefined) {
+                    return safeRow[name];
                   }
                 }
                 
                 // 如果找不到，返回空字符串
                 return '';
               };
+
+              // 校验必填列值
+              for (const col of requiredColumnsPerRow) {
+                const val = getColumnValue(col);
+                if (val === '' || val === undefined || val === null) {
+                  errors.push(`第${index + 1}行：列「${col}」为必填，请填写完整`);
+                }
+              }
+              // 数值列校验与标准化
+              const numericColumns = ['年龄','服务次数','总服务小时','服务时长2025','服务积分','讲解积分','附加积分','已兑换积分','剩余积分'];
+              const parseNumber = (v: any) => {
+                if (typeof v === 'number') return v;
+                const s = String(v).replace('小时','').trim();
+                const n = parseInt(s, 10);
+                return isNaN(n) ? NaN : n;
+              };
+              for (const col of numericColumns) {
+                const n = parseNumber(getColumnValue(col));
+                if (isNaN(n)) {
+                  errors.push(`第${index + 1}行：列「${col}」必须为数字`);
+                }
+              }
+              if (errors.length > 0) {
+                return; // 本行有错误，跳过构造数据
+              }
               
               // 验证必填字段 - 如果不是空行但缺少必填字段，则报错
               const volunteerNo = getColumnValue('志愿者编号');
@@ -709,7 +764,7 @@ const VolunteerPage: React.FC = () => {
               }
 
               // 验证年龄 - 如果年龄为空或无效，使用默认值0
-              let age = parseInt(getColumnValue('年龄')) || 0;
+              let age = parseInt(String(getColumnValue('年龄')).trim()) || 0;
               if (isNaN(age) || age < 0 || age > 120) {
                 console.warn(`第${index + 1}行：年龄值异常(${getColumnValue('年龄')})，使用默认值0`);
                 age = 0;
@@ -727,17 +782,17 @@ const VolunteerPage: React.FC = () => {
                 name: getColumnValue('姓名') || '',
                 phone: getColumnValue('电话') || '',
                 gender: getColumnValue('性别') || '',
-                age: parseInt(getColumnValue('年龄')) || 0,
+                age: parseInt(String(getColumnValue('年龄')).trim()) || 0,
                 type: getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务',
-                servicecount: parseInt(getColumnValue('服务次数')) || 0,
+                servicecount: parseInt(String(getColumnValue('服务次数')).trim()) || 0,
                 servicehours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
                 servicehours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
-                servicescore: parseInt(getColumnValue('服务积分')) || 0, // 服务积分
-                explainscore: parseInt(getColumnValue('讲解积分')) || 0, // 讲解积分
-                bonusscore: parseInt(getColumnValue('附加积分')) || 0, // 附加积分
-                totalscore: parseInt(getColumnValue('累计获得积分')) || 0,
-                redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
-                remainingscore: parseInt(getColumnValue('剩余积分')) || 0,
+                servicescore: parseInt(String(getColumnValue('服务积分')).trim()) || 0, // 服务积分
+                explainscore: parseInt(String(getColumnValue('讲解积分')).trim()) || 0, // 讲解积分
+                bonusscore: parseInt(String(getColumnValue('附加积分')).trim()) || 0, // 附加积分
+                totalscore: parseInt(String(getColumnValue('累计获得积分')).trim()) || 0,
+                redeemedscore: parseInt(String(getColumnValue('已兑换积分')).trim()) || 0,
+                remainingscore: parseInt(String(getColumnValue('剩余积分')).trim()) || 0,
                 status: 'active', // 简化状态判定
                 registerdate: dayjs().format('YYYY-MM-DD'),
                 lastservicedate: lastServiceDate,
@@ -751,17 +806,17 @@ const VolunteerPage: React.FC = () => {
                 name: getColumnValue('姓名') || '',
                 phone: getColumnValue('电话') || '',
                 gender: getColumnValue('性别') || '',
-                age: parseInt(getColumnValue('年龄')) || 0,
+                age: parseInt(String(getColumnValue('年龄')).trim()) || 0,
                 type: (getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务') as '场馆服务' | '讲解服务',
-                serviceCount: parseInt(getColumnValue('服务次数')) || 0,
+                serviceCount: parseInt(String(getColumnValue('服务次数')).trim()) || 0,
                 serviceHours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
                 serviceHours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
-                serviceScore: parseInt(getColumnValue('服务积分')) || 0, // 服务积分
-                explainScore: parseInt(getColumnValue('讲解积分')) || 0, // 讲解积分
-                bonusScore: parseInt(getColumnValue('附加积分')) || 0, // 附加积分
-                totalscore: parseInt(getColumnValue('累计获得积分')) || 0,
-                redeemedscore: parseInt(getColumnValue('已兑换积分')) || 0,
-                remainingscore: parseInt(getColumnValue('剩余积分')) || 0,
+                serviceScore: parseInt(String(getColumnValue('服务积分')).trim()) || 0, // 服务积分
+                explainScore: parseInt(String(getColumnValue('讲解积分')).trim()) || 0, // 讲解积分
+                bonusScore: parseInt(String(getColumnValue('附加积分')).trim()) || 0, // 附加积分
+                totalscore: parseInt(String(getColumnValue('累计获得积分')).trim()) || 0,
+                redeemedscore: parseInt(String(getColumnValue('已兑换积分')).trim()) || 0,
+                remainingscore: parseInt(String(getColumnValue('剩余积分')).trim()) || 0,
                 status: 'active',
                 registerdate: dayjs().format('YYYY-MM-DD'),
                 lastservicedate: lastServiceDate,
@@ -2192,45 +2247,6 @@ const VolunteerPage: React.FC = () => {
             />
           </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item
-                name="accumulateds"
-                label="累计获得积分"
-              >
-                <InputNumber
-                  min={0}
-                  placeholder="请输入累计获得积分"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                name="explainScore"
-                label="讲解积分"
-              >
-                <InputNumber
-                  min={0}
-                  placeholder="请输入讲解积分"
-                  style={{ width: '100%' }}
-                />
-          </Form.Item>
-            </Col>
-            {/* <Col span={8}>
-              <Form.Item
-                name="bonusScore"
-                label="附加积分"
-                tooltip="由工作人员手动添加的积分"
-              >
-            <InputNumber
-                  min={0}
-                  placeholder="请输入附加积分"
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-            </Col> */}
             <Col span={8}>
               <Form.Item
                 name="redeemedScore"
