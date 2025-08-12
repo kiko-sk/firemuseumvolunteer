@@ -312,8 +312,8 @@ const VolunteerPage: React.FC = () => {
   // 计算统计数据
   const stats = {
     total: volunteers.length,
-    active: volunteers.filter(v => v.status === 'active').length,
-    needReview: volunteers.filter(v => v.status === 'need_review').length,
+    active: volunteers.filter(v => determineStatus(v.serviceHours2025 || 0, v.explainScore || 0) === 'active').length,
+    needReview: volunteers.filter(v => determineStatus(v.serviceHours2025 || 0, v.explainScore || 0) === 'need_review').length,
     totalScore: volunteers.reduce((sum, v) => sum + v.totalscore, 0)
   };
 
@@ -445,13 +445,14 @@ const VolunteerPage: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 80,
-      render: (status: 'active' | 'inactive' | 'need_review') => {
+      render: (_: any, record: VolunteerData) => {
+        const computedStatus: 'active' | 'inactive' | 'need_review' = determineStatus(record.serviceHours2025 || 0, record.explainScore || 0);
         const statusMap: Record<'active' | 'inactive' | 'need_review', { color: string; text: string }> = {
           active: { color: 'green', text: '活跃' },
           inactive: { color: 'gray', text: '非活跃' },
           need_review: { color: 'red', text: '需考核' }
         };
-        const config = statusMap[status];
+        const config = statusMap[computedStatus];
         return <Tag color={config.color}>{config.text}</Tag>;
       }
     },
@@ -777,10 +778,11 @@ const VolunteerPage: React.FC = () => {
               }
 
               // 转换数据 - 确保所有数值字段都有默认值
-              const serviceHours = parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0;
-              const type = getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务';
               const lastServiceDate = getColumnValue('最后服务日期') || '';
-              const autoStatus = determineStatusByServiceHours(serviceHours, lastServiceDate);
+              const autoStatus = determineStatus(
+                parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
+                parseInt(String(getColumnValue('讲解积分')).trim()) || 0
+              );
               
               // 只包含Supabase数据库中确实存在的字段，使用小写字段名
               const volunteer: any = {
@@ -799,7 +801,7 @@ const VolunteerPage: React.FC = () => {
                 totalscore: parseInt(String(getColumnValue('累计获得积分')).trim()) || 0,
                 redeemedscore: parseInt(String(getColumnValue('已兑换积分')).trim()) || 0,
                 remainingscore: parseInt(String(getColumnValue('剩余积分')).trim()) || 0,
-                status: 'active', // 简化状态判定
+                status: autoStatus, // 根据服务时长2025与讲解积分判定
                 registerdate: dayjs().format('YYYY-MM-DD'),
                 lastservicedate: lastServiceDate,
                 remark: getColumnValue('备注') || ''
@@ -823,7 +825,7 @@ const VolunteerPage: React.FC = () => {
                 totalscore: parseInt(String(getColumnValue('累计获得积分')).trim()) || 0,
                 redeemedscore: parseInt(String(getColumnValue('已兑换积分')).trim()) || 0,
                 remainingscore: parseInt(String(getColumnValue('剩余积分')).trim()) || 0,
-                status: 'active',
+                status: autoStatus,
                 registerdate: dayjs().format('YYYY-MM-DD'),
                 lastservicedate: lastServiceDate,
                 remark: getColumnValue('备注') || ''
@@ -974,13 +976,13 @@ const VolunteerPage: React.FC = () => {
   const handleBatchUpdateStatus = async () => {
     Modal.confirm({
       title: '批量更新状态',
-      content: '确定要根据服务时长和最后服务日期重新计算所有志愿者的状态吗？',
+      content: '确定要根据“服务时长2025”和“讲解积分”重新计算所有志愿者的状态吗？',
       onOk: async () => {
         try {
           const updatedData = volunteers.map(volunteer => ({
             ...volunteer,
             serviceHours2025: volunteer.serviceHours2025 || 0,
-            status: determineStatusByServiceHours(volunteer.serviceHours, volunteer.lastservicedate)
+            status: determineStatus(volunteer.serviceHours2025 || 0, volunteer.explainScore || 0)
           }));
           
           if (isLocalAdmin()) {
@@ -1296,7 +1298,7 @@ const VolunteerPage: React.FC = () => {
         已兑换积分: v.redeemedscore,
         剩余积分: v.remainingscore,
         备注: v.remark || '',
-        状态: v.status === 'active' ? '活跃' : v.status === 'inactive' ? '非活跃' : '需考核'
+        状态: ((s => s === 'active' ? '活跃' : s === 'inactive' ? '非活跃' : '需考核')(determineStatus(v.serviceHours2025 || 0, v.explainScore || 0)))
       }));
 
       // 创建工作簿
@@ -1372,26 +1374,16 @@ const VolunteerPage: React.FC = () => {
     return Math.floor(serviceHours / 4);
   };
 
-  // 根据服务时长和最后服务日期自动判定状态
-  const determineStatusByServiceHours = (serviceHours: number, lastServiceDate: string): 'active' | 'inactive' | 'need_review' => {
-    // 如果服务时长为0，直接判定为非活跃
-    if (serviceHours === 0) {
+  // 根据服务时长2025与讲解积分自动判定状态
+  const determineStatus = (serviceHours2025: number, explainScore: number): 'active' | 'inactive' | 'need_review' => {
+    const hours = Number(serviceHours2025) || 0;
+    const explain = Number(explainScore) || 0;
+    if (hours === 0) {
       return 'inactive';
     }
-    
-    // 如果有最后服务日期，检查是否超过6个月没有服务
-    if (lastServiceDate) {
-      const lastService = dayjs(lastServiceDate);
-      const now = dayjs();
-      const monthsDiff = now.diff(lastService, 'month');
-      
-      // 如果超过6个月没有服务，判定为需考核
-      if (monthsDiff >= 6) {
-        return 'need_review';
-      }
+    if (explain === 0) {
+      return 'need_review';
     }
-    
-    // 其他情况判定为活跃
     return 'active';
   };
 
@@ -1404,8 +1396,8 @@ const VolunteerPage: React.FC = () => {
           // const bonusScore = values.bonusScore || 0; // 附加积分 - 暂时注释，Supabase数据库中没有此字段
     const totalScore = serviceScore + explainScore; // 总积分 = 服务积分 + 讲解积分
 
-      // 根据服务时长和最后服务日期自动判定状态
-      const autoStatus = determineStatusByServiceHours(parseInt(values.serviceHours) || 0, values.lastServiceDate || '');
+      // 根据服务时长2025和讲解积分自动判定状态
+      const autoStatus = determineStatus(parseInt(values.serviceHours2025) || 0, explainScore);
 
       const newVolunteer: VolunteerData = {
         id: editingVolunteer?.id || Date.now().toString(),
