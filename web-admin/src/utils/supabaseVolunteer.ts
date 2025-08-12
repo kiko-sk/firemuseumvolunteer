@@ -98,8 +98,9 @@ export async function addVolunteer(volunteer: any) {
       redeemedscore: volunteer.redeemedscore || 0,
       remainingscore: volunteer.remainingscore || 0,
       status: volunteer.status || 'active',
-      registerdate: volunteer.registerdate || '',
-      lastservicedate: volunteer.lastservicedate || '',
+      // 日期字段：空值用 null，避免传 "" 导致数据库类型错误
+      registerdate: volunteer.registerdate ? volunteer.registerdate : null,
+      lastservicedate: volunteer.lastServiceDate || volunteer.lastservicedate ? (volunteer.lastServiceDate || volunteer.lastservicedate) : null,
       remark: volunteer.remark || '',
       user_id: userId
     };
@@ -146,8 +147,9 @@ export async function updateVolunteer(id: string, volunteer: any) {
       redeemedscore: volunteer.redeemedscore || 0,
       remainingscore: volunteer.remainingscore || 0,
       status: volunteer.status || 'active',
-      registerdate: volunteer.registerdate || '',
-      lastservicedate: volunteer.lastservicedate || '',
+      // 日期字段：空值用 null，避免传 "" 导致数据库类型错误
+      registerdate: volunteer.registerdate ? volunteer.registerdate : null,
+      lastservicedate: volunteer.lastServiceDate || volunteer.lastservicedate ? (volunteer.lastServiceDate || volunteer.lastservicedate) : null,
       remark: volunteer.remark || '',
       user_id: userId
     };
@@ -231,38 +233,45 @@ export async function batchAddVolunteers(volunteers: any[]) {
     }
     
     // 为每个志愿者添加用户ID，并过滤掉所有不存在的字段
+    const toNumber = (v: any, def: number = 0) => {
+      if (v === '' || v === undefined || v === null) return def;
+      const n = Number(String(v).replace('小时','').trim());
+      return Number.isFinite(n) ? n : def;
+    };
+
     const volunteersWithUserId = volunteers.map(volunteer => {
-      // 创建一个新对象，只包含Supabase数据库中确实存在的字段，使用小写字段名
+      // 兼容两种输入：表单（驼峰）与导入（蛇形）
       const cleanVolunteer: any = {
-        volunteerno: volunteer.volunteerNo || '',
-        name: volunteer.name || '',
-        phone: volunteer.phone || '',
-        gender: volunteer.gender || '',
-        age: volunteer.age || 0,
-        type: volunteer.type || '场馆服务',
-        servicecount: volunteer.serviceCount || 0,
-        servicehours: volunteer.serviceHours || 0,
-        servicehours2025: volunteer.serviceHours2025 || 0, // 服务时长2025
-        servicescore: volunteer.serviceScore || 0, // 服务积分
-        explainscore: volunteer.explainScore || 0, // 讲解积分
-        bonusscore: volunteer.bonusScore || 0, // 附加积分
-        totalscore: volunteer.totalscore || 0,
-        redeemedscore: volunteer.redeemedscore || 0,
-        remainingscore: volunteer.remainingscore || 0,
-        status: volunteer.status || 'active',
-        registerdate: volunteer.registerdate || '',
-        lastservicedate: volunteer.lastservicedate || '',
-        remark: volunteer.remark || '',
+        volunteerno: (volunteer.volunteerNo ?? volunteer.volunteerno ?? '').toString().trim(),
+        name: (volunteer.name ?? '').toString().trim(),
+        phone: (volunteer.phone ?? '').toString().trim(),
+        gender: (volunteer.gender ?? '').toString().trim(),
+        age: toNumber(volunteer.age, 0),
+        type: (volunteer.type ?? '场馆服务').toString().trim(),
+        servicecount: toNumber(volunteer.serviceCount ?? volunteer.servicecount, 0),
+        servicehours: toNumber(volunteer.serviceHours ?? volunteer.servicehours, 0),
+        servicehours2025: toNumber(volunteer.serviceHours2025 ?? volunteer.servicehours2025, 0),
+        servicescore: toNumber(volunteer.serviceScore ?? volunteer.servicescore, 0),
+        explainscore: toNumber(volunteer.explainScore ?? volunteer.explainscore, 0),
+        bonusscore: toNumber(volunteer.bonusScore ?? volunteer.bonusscore, 0),
+        totalscore: toNumber(volunteer.totalscore, 0),
+        redeemedscore: toNumber(volunteer.redeemedscore, 0),
+        remainingscore: toNumber(volunteer.remainingscore, 0),
+        status: (volunteer.status ?? 'active').toString().trim(),
+        // 日期字段：空值用 null，兼容 lastServiceDate / lastservicedate
+        registerdate: volunteer.registerdate ? volunteer.registerdate : null,
+        lastservicedate: (volunteer.lastServiceDate ?? volunteer.lastservicedate) ? (volunteer.lastServiceDate ?? volunteer.lastservicedate) : null,
+        remark: (volunteer.remark ?? '').toString(),
         user_id: userId
       };
-      
-      // 移除所有undefined和null值
+
+      // 移除所有 undefined / null
       Object.keys(cleanVolunteer).forEach(key => {
         if (cleanVolunteer[key] === undefined || cleanVolunteer[key] === null) {
           delete cleanVolunteer[key];
         }
       });
-      
+
       return cleanVolunteer;
     });
     

@@ -55,6 +55,7 @@ import { saveAs } from 'file-saver';
 import { cloudSync } from '../../utils/cloudSync';
 import { fetchVolunteers, addVolunteer, updateVolunteer, deleteVolunteer, batchDeleteVolunteers, batchAddVolunteers, clearAllVolunteers } from '../../utils/supabaseVolunteer';
 import { testSupabaseConnection } from '../../utils/supabaseClient';
+import { runSyncDiagnostic } from '../../utils/syncDiagnostic';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -195,7 +196,9 @@ const VolunteerPage: React.FC = () => {
       }
       message.success('添加成功');
     } catch (e) {
+      console.error('添加失败:', e);
       message.error('添加失败');
+      try { await runSyncDiagnostic(); } catch {}
     } finally {
       setLoading(false);
     }
@@ -723,19 +726,22 @@ const VolunteerPage: React.FC = () => {
                   errors.push(`第${index + 1}行：列「${col}」为必填，请填写完整`);
                 }
               }
-              // 数值列校验与标准化
+              // 数值列解析与标准化（宽容处理：无法解析一律按0处理，不阻断导入）
               const numericColumns = ['年龄','服务次数','总服务小时','服务时长2025','服务积分','讲解积分','附加积分','已兑换积分','剩余积分'];
               const parseNumber = (v: any) => {
-                if (typeof v === 'number') return v;
-                const s = String(v).replace('小时','').trim();
-                const n = parseInt(s, 10);
-                return isNaN(n) ? NaN : n;
+                if (v === '' || v === null || v === undefined) return 0;
+                if (typeof v === 'number' && Number.isFinite(v)) return v;
+                // 去除除数字/小数点/负号以外的字符，例如“—”、“-”、“小时”等
+                const s = String(v).replace(/[^0-9.-]/g, '').trim();
+                if (s === '' || s === '-' || s === '.' || s === '-.') return 0;
+                const n = Number(s);
+                return Number.isFinite(n) ? n : 0;
               };
+              // 仅进行转换，不再添加错误；真正赋值时统一用 parseNumber
+              const numericPreview: Record<string, number> = {};
               for (const col of numericColumns) {
-                const n = parseNumber(getColumnValue(col));
-                if (isNaN(n)) {
-                  errors.push(`第${index + 1}行：列「${col}」必须为数字`);
-                }
+                const raw = getColumnValue(col);
+                numericPreview[col] = parseNumber(raw);
               }
               if (errors.length > 0) {
                 return; // 本行有错误，跳过构造数据
@@ -1400,7 +1406,7 @@ const VolunteerPage: React.FC = () => {
 
       // 根据服务时长和最后服务日期自动判定状态
       const autoStatus = determineStatusByServiceHours(parseInt(values.serviceHours) || 0, values.lastServiceDate || '');
-      
+
       const newVolunteer: VolunteerData = {
         id: editingVolunteer?.id || Date.now().toString(),
         volunteerNo: values.volunteerNo || '', // 新增志愿者编号
@@ -1424,34 +1430,20 @@ const VolunteerPage: React.FC = () => {
         remark: values.remark || ''
       };
 
+      // 处理编辑或新增
       if (editingVolunteer) {
-        setVolunteers(prev => prev.map(v => v.id === editingVolunteer.id ? { ...v, ...newVolunteer } : v));
-        message.success('更新成功');
+        // 编辑志愿者
+        await handleEditVolunteer(editingVolunteer.id, newVolunteer);
       } else {
-        setVolunteers(prev => [...prev, newVolunteer]);
-        message.success('添加成功');
+        // 新增志愿者
+        await handleAddVolunteer(newVolunteer);
       }
-      
-      // 保存到本地存储
-      if (isLocalAdmin()) {
-        const currentData = volunteers;
-        const updatedData = editingVolunteer 
-          ? currentData.map(v => v.id === editingVolunteer.id ? { ...v, ...newVolunteer } : v)
-          : [...currentData, newVolunteer];
-        
-        // 确保所有数据都有serviceHours2025字段
-        const migratedData = updatedData.map((volunteer: any) => ({
-          ...volunteer,
-          serviceHours2025: volunteer.serviceHours2025 || 0
-        }));
-        
-        localStorage.setItem('volunteerData', JSON.stringify(migratedData));
-      }
-      
+
       setModalVisible(false);
       form.resetFields();
     } catch (error) {
-      message.error('操作失败');
+      console.error('表单提交失败:', error);
+      message.error('操作失败: ' + (error instanceof Error ? error.message : '未知错误'));
     }
   };
 
@@ -1923,14 +1915,26 @@ const VolunteerPage: React.FC = () => {
                   >
                     导出备份
                   </Button>
-                  <Button 
-                    icon={<UploadOutlined />} 
+                  <Button
+                    icon={<UploadOutlined />}
                     onClick={handleImportBackup}
                     size="small"
                     style={{ borderRadius: '6px' }}
                     title="导入数据备份"
                   >
                     导入备份
+                  </Button>
+                  <Button
+                    icon={<CheckCircleOutlined />}
+                    onClick={async () => {
+                      console.log('🚀 开始云端同步诊断...');
+                      await runSyncDiagnostic();
+                    }}
+                    size="small"
+                    style={{ borderRadius: '6px', backgroundColor: '#52c41a', borderColor: '#52c41a', color: 'white' }}
+                    title="检查云端同步状态"
+                  >
+                    同步诊断
                   </Button>
                   <Button 
                     icon={<ReloadOutlined />} 
