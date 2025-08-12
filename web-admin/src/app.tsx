@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Button } from 'antd';
+import { supabase } from '@/utils/supabaseClient';
 import dayjs from 'dayjs';
 import weekday from 'dayjs/plugin/weekday';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
@@ -20,18 +21,18 @@ export function layout({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('token');
     const isLoginPage = location.pathname === '/login';
     const isLandingPage = location.pathname === '/';
-    
+
     // 主站页面不需要登录验证
     if (isLandingPage) {
       return;
     }
-    
+
     if (!token && !isLoginPage) {
       // 未登录且不在登录页，重定向到登录页
       navigate('/login');
       return;
     }
-    
+
     if (token && isLoginPage) {
       // 已登录但在登录页，重定向到管理首页
       navigate('/home');
@@ -39,7 +40,10 @@ export function layout({ children }: { children: React.ReactNode }) {
     }
   }, [location.pathname, navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
     localStorage.removeItem('token');
     localStorage.removeItem('currentUser');
     navigate('/login');
@@ -59,4 +63,4 @@ export function layout({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
-} 
+}
