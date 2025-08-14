@@ -30,18 +30,35 @@ const ScoreManagement: React.FC = () => {
       const volunteerData = localStorage.getItem('volunteerData');
       if (volunteerData) {
         const volunteers = JSON.parse(volunteerData);
-        const scoreRecords: ScoreData[] = volunteers.map((volunteer: any) => ({
-          id: volunteer.id,
-          volunteerName: volunteer.name,
-          volunteerNo: volunteer.volunteerNo || '',
-          serviceScore: volunteer.serviceScore || 0,
-          explanationScore: volunteer.explanationScore || 0,
-          // bonusScore: volunteer.bonusScore || 0, // 暂时注释，Supabase数据库中没有此字段
-          totalScore: (volunteer.serviceScore || 0) + (volunteer.explanationScore || 0), // 移除bonusScore
-          redeemedScore: volunteer.redeemedScore || 0,
-          remainingScore: ((volunteer.serviceScore || 0) + (volunteer.explanationScore || 0)) - (volunteer.redeemedScore || 0), // 移除bonusScore
-          lastUpdateTime: dayjs().format('YYYY-MM-DD HH:mm:ss')
-        }));
+        const scoreRecords: ScoreData[] = (Array.isArray(volunteers) ? volunteers : []).map((v: any) => {
+          const toNum = (val: any, d = 0) => {
+            const n = Number(val);
+            return Number.isFinite(n) ? n : d;
+          };
+          // 统一字段名与计算规则（与志愿者页面一致）
+          const name = (v.name ?? '').toString();
+          const no = (v.volunteerNo ?? v.volunteerno ?? '').toString();
+          const sh2025 = toNum(v.serviceHours2025 ?? v.servicehours2025, 0);
+          const explain = toNum(v.explainScore ?? v.explainscore ?? v.explanationScore, 0);
+          const bonus = toNum(v.bonusScore ?? v.bonusscore, 0);
+          const redeemed = toNum(v.redeemedscore ?? v.redeemedScore, 0);
+          const serviceScore = Math.floor(sh2025 / 4); // 服务积分=服务时长2025/4
+          const totalscore = toNum(v.totalscore ?? v.totalScore, serviceScore + explain + bonus);
+          const remaining = toNum(v.remainingscore ?? v.remainingScore, totalscore - redeemed);
+
+          return {
+            id: String(v.id ?? no ?? name),
+            volunteerName: name,
+            volunteerNo: no,
+            serviceScore,
+            explanationScore: explain,
+            // bonusScore: bonus, // 暂不展示
+            totalScore: totalscore,
+            redeemedScore: redeemed,
+            remainingScore: remaining,
+            lastUpdateTime: dayjs().format('YYYY-MM-DD HH:mm:ss')
+          } as ScoreData;
+        });
         setScoreData(scoreRecords);
       }
     } catch (error) {

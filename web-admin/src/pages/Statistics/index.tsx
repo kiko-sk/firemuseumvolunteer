@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Progress, Table, Button } from 'antd';
-import { UserOutlined, CalendarOutlined, TrophyOutlined, RiseOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Statistic, Progress, Table, Button, message } from 'antd';
+import { UserOutlined, CalendarOutlined, TrophyOutlined, RiseOutlined, ReloadOutlined, GiftOutlined, ShoppingCartOutlined, DollarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { fetchVolunteers } from '../../utils/supabaseVolunteer';
+import { fetchSignupRecords } from '../../utils/supabaseSignup';
+import { fetchGifts } from '../../utils/supabaseGift';
 
 interface VolunteerData {
   id: string;
@@ -39,26 +42,113 @@ interface SignupRecord {
 const StatisticsPage: React.FC = () => {
   const [volunteerData, setVolunteerData] = useState<VolunteerData[]>([]);
   const [signupData, setSignupData] = useState<SignupRecord[]>([]);
+  const [giftStats, setGiftStats] = useState({ totalGifts: 0, activeGifts: 0, totalStock: 0, totalExchanged: 0, totalPointsUsed: 0 });
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
 
-  // 从localStorage获取数据
-  const loadData = () => {
-    try {
-      // 获取志愿者数据
-      const storedVolunteers = localStorage.getItem('volunteerData');
-      if (storedVolunteers) {
-        setVolunteerData(JSON.parse(storedVolunteers));
-      }
+  // 本地管理员判定（与各页一致：currentUser.phone==='test'）
+  const isLocalAdmin = () => {
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) return false;
+    try { const u = JSON.parse(currentUser); return u.phone === 'test'; } catch { return false; }
+  };
 
-      // 获取报名数据
-      const storedSignups = localStorage.getItem('signupRecords');
-      if (storedSignups) {
-        setSignupData(JSON.parse(storedSignups));
+  // 数据加载（云端模式优先从 Supabase 拉取；本地管理员走 localStorage）
+  const loadData = async () => {
+    try {
+      if (isLocalAdmin()) {
+        // 志愿者
+        const storedVolunteers = localStorage.getItem('volunteerData');
+        const volunteers = storedVolunteers ? JSON.parse(storedVolunteers) : [];
+        // 标准化+重算
+        const normalized = (Array.isArray(volunteers) ? volunteers : []).map((r: any) => {
+          const toNum = (v: any, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
+          const serviceHours = toNum(r.serviceHours ?? r.servicehours, 0);
+          const sh2025 = toNum(r.serviceHours2025 ?? r.servicehours2025, 0);
+          const explain = toNum(r.explainScore ?? r.explainscore ?? r.explanationScore, 0);
+          const bonus = toNum(r.bonusScore ?? r.bonusscore, 0);
+          const serviceScore = Math.floor(sh2025 / 4);
+          const totalscore = toNum(r.totalscore ?? r.totalScore, serviceScore + explain + bonus);
+          const redeemed = toNum(r.redeemedscore ?? r.redeemedScore, 0);
+          const remaining = toNum(r.remainingscore ?? r.remainingScore, totalscore - redeemed);
+          const serviceType = (r.serviceType ?? r.servicetype ?? r.type ?? '').toString();
+          return { ...r, serviceHours, serviceHours2025: sh2025, explainScore: explain, bonusScore: bonus, totalscore, redeemedscore: redeemed, remainingscore: remaining, serviceType };
+        });
+        setVolunteerData(normalized);
+
+        // 报名
+        const storedSignups = localStorage.getItem('signupRecords');
+        setSignupData(storedSignups ? JSON.parse(storedSignups) : []);
+
+        // 礼品（本地）
+        const storedGifts = localStorage.getItem('giftData');
+        const gifts = storedGifts ? JSON.parse(storedGifts) : [];
+        const gs = {
+          totalGifts: gifts.length,
+          activeGifts: gifts.filter((g: any) => g.status === 'active').length,
+          totalStock: gifts.reduce((s: number, g: any) => s + (Number(g.stock) || 0), 0),
+          totalExchanged: gifts.reduce((s: number, g: any) => s + (Number(g.exchanged) || 0), 0),
+          totalPointsUsed: gifts.reduce((s: number, g: any) => s + (Number(g.exchanged) || 0) * (Number(g.points) || 0), 0)
+        };
+        setGiftStats(gs);
+      } else {
+        // 云端模式
+        // 志愿者
+        const vols = await fetchVolunteers();
+        const normalized = (Array.isArray(vols) ? vols : []).map((r: any) => {
+          const toNum = (v: any, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
+          const serviceHours = toNum(r.servicehours ?? r.serviceHours, 0);
+          const sh2025 = toNum(r.servicehours2025 ?? r.serviceHours2025, 0);
+          const explain = toNum(r.explainscore ?? r.explainScore, 0);
+          const bonus = toNum(r.bonusscore ?? r.bonusScore, 0);
+          const serviceScore = Math.floor(sh2025 / 4);
+          const totalscore = toNum(r.totalscore ?? r.totalScore, serviceScore + explain + bonus);
+          const redeemed = toNum(r.redeemedscore ?? r.redeemedScore, 0);
+          const remaining = toNum(r.remainingscore ?? r.remainingScore, totalscore - redeemed);
+          const serviceType = (r.serviceType ?? r.servicetype ?? r.type ?? '').toString();
+          return { ...r, serviceHours: serviceHours, serviceHours2025: sh2025, explainScore: explain, bonusScore: bonus, totalscore, redeemedscore: redeemed, remainingscore: remaining, serviceType };
+        });
+        setVolunteerData(normalized as any);
+
+        // 报名
+        try {
+          const signups = await fetchSignupRecords();
+          setSignupData(Array.isArray(signups) ? signups : []);
+        } catch (e) {
+          console.warn('云端报名获取失败，回退到本地signupRecords:', e);
+          const storedSignups = localStorage.getItem('signupRecords');
+          setSignupData(storedSignups ? JSON.parse(storedSignups) : []);
+        }
+
+        // 礼品
+        try {
+          const gifts = await fetchGifts();
+          const gs = {
+            totalGifts: (gifts || []).length,
+            activeGifts: (gifts || []).filter((g: any) => g.status === 'active').length,
+            totalStock: (gifts || []).reduce((s: number, g: any) => s + (Number(g.stock) || 0), 0),
+            totalExchanged: (gifts || []).reduce((s: number, g: any) => s + (Number(g.exchanged) || 0), 0),
+            totalPointsUsed: (gifts || []).reduce((s: number, g: any) => s + (Number(g.exchanged) || 0) * (Number(g.points) || 0), 0)
+          };
+          setGiftStats(gs);
+        } catch (e) {
+          console.warn('云端礼品获取失败，回退到本地giftData:', e);
+          const storedGifts = localStorage.getItem('giftData');
+          const gifts = storedGifts ? JSON.parse(storedGifts) : [];
+          const gs = {
+            totalGifts: gifts.length,
+            activeGifts: gifts.filter((g: any) => g.status === 'active').length,
+            totalStock: gifts.reduce((s: number, g: any) => s + (Number(g.stock) || 0), 0),
+            totalExchanged: gifts.reduce((s: number, g: any) => s + (Number(g.exchanged) || 0), 0),
+            totalPointsUsed: gifts.reduce((s: number, g: any) => s + (Number(g.exchanged) || 0) * (Number(g.points) || 0), 0)
+          };
+          setGiftStats(gs);
+        }
       }
 
       setLastUpdateTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
     } catch (error) {
       console.error('加载数据失败:', error);
+      message.error('统计数据加载失败');
     }
   };
 
@@ -68,7 +158,7 @@ const StatisticsPage: React.FC = () => {
 
     // 监听storage事件
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'volunteerData' || e.key === 'signupRecords') {
+      if (e.key === 'volunteerData' || e.key === 'signupRecords' || e.key === 'giftData') {
         loadData();
       }
     };
@@ -81,7 +171,7 @@ const StatisticsPage: React.FC = () => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
-  };
+    };
   }, []);
 
   // 计算统计数据
@@ -90,13 +180,13 @@ const StatisticsPage: React.FC = () => {
   const needReviewVolunteers = volunteerData.filter(v => v.status === 'need_review').length;
   const inactiveVolunteers = volunteerData.filter(v => v.status === 'inactive').length;
   
-  const totalServiceHours = volunteerData.reduce((sum, v) => sum + v.serviceHours, 0);
-  const totalServiceScore = volunteerData.reduce((sum, v) => sum + v.serviceScore, 0);
-  const totalExplainScore = volunteerData.reduce((sum, v) => sum + v.explainScore, 0);
-  // const totalBonusScore = volunteerData.reduce((sum, v) => sum + v.bonusScore, 0); // 暂时注释，Supabase数据库中没有此字段
-  const totalScore = volunteerData.reduce((sum, v) => sum + v.totalScore, 0);
-  const totalRedeemedScore = volunteerData.reduce((sum, v) => sum + v.redeemedScore, 0);
-  const totalRemainingScore = volunteerData.reduce((sum, v) => sum + v.remainingScore, 0);
+  const totalServiceHours = volunteerData.reduce((sum, v: any) => sum + (Number((v as any).serviceHours) || 0), 0);
+  const totalServiceScore = volunteerData.reduce((sum, v: any) => sum + (Number((v as any).serviceScore ?? (Math.floor((Number((v as any).serviceHours2025) || 0) / 4))) || 0), 0);
+  const totalExplainScore = volunteerData.reduce((sum, v: any) => sum + (Number((v as any).explainScore) || 0), 0);
+  // const totalBonusScore = volunteerData.reduce((sum, v: any) => sum + (Number((v as any).bonusScore) || 0), 0);
+  const totalScore = volunteerData.reduce((sum, v: any) => sum + (Number((v as any).totalscore ?? (v as any).totalScore) || 0), 0);
+  const totalRedeemedScore = volunteerData.reduce((sum, v: any) => sum + (Number((v as any).redeemedscore ?? (v as any).redeemedScore) || 0), 0);
+  const totalRemainingScore = volunteerData.reduce((sum, v: any) => sum + (Number((v as any).remainingscore ?? (v as any).remainingScore) || 0), 0);
 
   // 报名统计
   const totalSignups = signupData.length;
@@ -109,9 +199,9 @@ const StatisticsPage: React.FC = () => {
   const studentVolunteers = signupData.filter(s => s.volunteerType === '学生志愿者').length;
   const socialVolunteers = signupData.filter(s => s.volunteerType === '社会志愿者').length;
 
-  // 服务类型统计
-  const venueServiceCount = signupData.filter(s => s.serviceType === '场馆服务').length;
-  const explainServiceCount = signupData.filter(s => s.serviceType === '讲解服务').length;
+  // 服务类型统计（改为基于志愿者画像的 serviceType，而非报名记录，避免报名缺字段导致为0）
+  const venueServiceCount = volunteerData.filter((v: any) => (v.serviceType || '') === '场馆服务').length;
+  const explainServiceCount = volunteerData.filter((v: any) => (v.serviceType || '') === '讲解服务').length;
 
   // 计算活跃度
   const activeRate = totalVolunteers > 0 ? Math.round((activeVolunteers / totalVolunteers) * 100) : 0;
@@ -191,6 +281,54 @@ const StatisticsPage: React.FC = () => {
               value={totalServiceHours}
               suffix="小时"
               prefix={<RiseOutlined />}
+              valueStyle={{ color: '#fa8c16' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 礼品统计 */}
+      <Row gutter={16} style={{ marginBottom: '24px' }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="礼品总数"
+              value={giftStats.totalGifts}
+              prefix={<GiftOutlined />}
+              valueStyle={{ color: '#3f8600' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="上架礼品"
+              value={giftStats.activeGifts}
+              prefix={<ShoppingCartOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="总库存"
+              value={giftStats.totalStock}
+              valueStyle={{ color: '#722ed1' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            <Statistic
+              title="已兑换 / 总消耗积分"
+              valueRender={() => (
+                <div>
+                  <div style={{ fontWeight: 600 }}>{giftStats.totalExchanged}</div>
+                  <div style={{ color: '#999', fontSize: 12 }}>消耗 {giftStats.totalPointsUsed} 分</div>
+                </div>
+              )}
+              prefix={<DollarOutlined />}
               valueStyle={{ color: '#fa8c16' }}
             />
           </Card>

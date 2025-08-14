@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react';
-import { Button } from 'antd';
+import { Button, Modal } from 'antd';
+import { LogoutOutlined } from '@ant-design/icons';
 import { supabase } from '@/utils/supabaseClient';
 import dayjs from 'dayjs';
 import weekday from 'dayjs/plugin/weekday';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isBefore from 'dayjs/plugin/isBefore';
+import isAfter from 'dayjs/plugin/isAfter';
 import localeData from 'dayjs/plugin/localeData';
 import { useLocation, useNavigate } from 'react-router-dom';
 dayjs.extend(weekday);
@@ -12,7 +15,7 @@ dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(localeData);
 
-export function layout({ children }: { children: React.ReactNode }) {
+export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -41,12 +44,19 @@ export function layout({ children }: { children: React.ReactNode }) {
   }, [location.pathname, navigate]);
 
   const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch {}
-    localStorage.removeItem('token');
-    localStorage.removeItem('currentUser');
-    navigate('/login');
+    Modal.confirm({
+      title: '确认退出',
+      content: '确定要退出登录吗？',
+      okText: '退出',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        try { await supabase.auth.signOut(); } catch {}
+        localStorage.removeItem('token');
+        localStorage.removeItem('currentUser');
+        navigate('/login');
+      },
+    });
   };
 
   // 如果是登录页或主站页面，返回纯页面内容，不添加任何UI元素
@@ -54,13 +64,14 @@ export function layout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // 只有功能页面才显示退出按钮
-  return (
-    <div>
-      <div style={{ position: 'fixed', right: 32, top: 24, zIndex: 1000 }}>
-        <Button danger onClick={handleLogout}>退出登录</Button>
-      </div>
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 }
+
+// 保持 runtime 兼容：命名导出 layout
+export function layout({ children }: { children: React.ReactNode }) {
+  return <AppLayoutWrapper>{children}</AppLayoutWrapper>;
+}
+
+
+
+

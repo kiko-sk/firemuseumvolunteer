@@ -282,38 +282,59 @@ const VolunteerPage: React.FC = () => {
     }
   };
 
-  // 监听数据变化，自动保存
+  // 监听数据变化，自动保存（仅本地管理员；云端模式不再写入localStorage）
   useEffect(() => {
-    if (volunteers.length > 0) {
+    if (isLocalAdmin() && volunteers.length > 0) {
       saveDataToStorage(volunteers);
     }
   }, [volunteers]);
 
-  // 过滤后的数据
-  const filteredVolunteers = volunteers.filter(volunteer => {
-    const matchesSearch = volunteer.name.includes(searchText) || 
-                         volunteer.gender.includes(searchText) ||
-                         volunteer.phone.includes(searchText) ||
-                         volunteer.volunteerNo.includes(searchText);
-    const matchesType = filterType === 'all' || volunteer.type === filterType;
-    
-    // 时间筛选逻辑
-    let matchesTime = true;
-    if (timeRange && timeRange[0] && timeRange[1]) {
-      const volunteerDate = dayjs(volunteer.registerdate);
-      const startDate = timeRange[0];
-      const endDate = timeRange[1];
-      matchesTime = volunteerDate.isAfter(startDate.subtract(1, 'day')) && volunteerDate.isBefore(endDate.add(1, 'day'));
+  // 过滤后的数据（for-of 方式，完全避免 Array.filter 回调问题）
+  const filteredVolunteers = (() => {
+    const list = Array.isArray(volunteers) ? volunteers : [];
+    const result: VolunteerData[] = [];
+    const safeStr = (v: any) => (v == null ? '' : String(v));
+    const q = safeStr(searchText).toLowerCase();
+
+    for (const v of list as any[]) {
+      try {
+        const haystack = [safeStr(v?.name), safeStr(v?.gender), safeStr(v?.phone), safeStr(v?.volunteerNo)]
+          .join('|')
+          .toLowerCase();
+        const matchesSearch = q ? haystack.indexOf(q) !== -1 : true;
+
+        const matchesType = filterType === 'all' || safeStr(v?.type) === filterType;
+
+        // 时间筛选：用时间戳比较；任一无效即跳过时间过滤
+        let matchesTime = true;
+        if (timeRange && (timeRange as any)[0] && (timeRange as any)[1]) {
+          const vd = dayjs(safeStr(v?.registerdate));
+          const sd = dayjs((timeRange as any)[0]);
+          const ed = dayjs((timeRange as any)[1]);
+          if (vd.isValid() && sd.isValid() && ed.isValid()) {
+            const vts = vd.valueOf();
+            const sts = sd.startOf('day').valueOf();
+            const ets = ed.endOf('day').valueOf();
+            matchesTime = vts >= sts && vts <= ets;
+          }
+        }
+
+        if (matchesSearch && matchesType && matchesTime) {
+          result.push(v as VolunteerData);
+        }
+      } catch (err) {
+        console.warn('filter guard caught:', err, v);
+        result.push(v as VolunteerData);
+      }
     }
-    
-    return matchesSearch && matchesType && matchesTime;
-  });
+    return result;
+  })();
 
   // 计算统计数据
   const stats = {
     total: volunteers.length,
-    active: volunteers.filter(v => determineStatus(v.serviceHours2025 || 0, v.explainScore || 0) === 'active').length,
-    needReview: volunteers.filter(v => determineStatus(v.serviceHours2025 || 0, v.explainScore || 0) === 'need_review').length,
+    active: volunteers.filter(v => determineStatus(v.type as any, v.serviceHours2025 || 0, v.explainScore || 0) === 'active').length,
+    needReview: volunteers.filter(v => determineStatus(v.type as any, v.serviceHours2025 || 0, v.explainScore || 0) === 'need_review').length,
     totalScore: volunteers.reduce((sum, v) => sum + v.totalscore, 0)
   };
 
@@ -446,7 +467,7 @@ const VolunteerPage: React.FC = () => {
       key: 'status',
       width: 80,
       render: (_: any, record: VolunteerData) => {
-        const computedStatus: 'active' | 'inactive' | 'need_review' = determineStatus(record.serviceHours2025 || 0, record.explainScore || 0);
+        const computedStatus: 'active' | 'inactive' | 'need_review' = determineStatus(record.type as any, record.serviceHours2025 || 0, record.explainScore || 0);
         const statusMap: Record<'active' | 'inactive' | 'need_review', { color: string; text: string }> = {
           active: { color: 'green', text: '活跃' },
           inactive: { color: 'gray', text: '非活跃' },
@@ -780,6 +801,7 @@ const VolunteerPage: React.FC = () => {
               // 转换数据 - 确保所有数值字段都有默认值
               const lastServiceDate = getColumnValue('最后服务日期') || '';
               const autoStatus = determineStatus(
+                (getColumnValue('服务类型') === '讲解服务' ? '讲解服务' : '场馆服务') as any,
                 parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
                 parseInt(String(getColumnValue('讲解积分')).trim()) || 0
               );
@@ -795,10 +817,14 @@ const VolunteerPage: React.FC = () => {
                 servicecount: parseInt(String(getColumnValue('服务次数')).trim()) || 0,
                 servicehours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
                 servicehours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
-                servicescore: parseInt(String(getColumnValue('服务积分')).trim()) || 0, // 服务积分
+                servicescore: Math.floor((parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0) / 4), // 服务积分=服务时长2025/4（取整）
                 explainscore: parseInt(String(getColumnValue('讲解积分')).trim()) || 0, // 讲解积分
                 bonusscore: parseInt(String(getColumnValue('附加积分')).trim()) || 0, // 附加积分
-                totalscore: parseInt(String(getColumnValue('累计获得积分')).trim()) || 0,
+                totalscore: (
+                  Math.floor((parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0) / 4) +
+                  (parseInt(String(getColumnValue('讲解积分')).trim()) || 0) +
+                  (parseInt(String(getColumnValue('附加积分')).trim()) || 0)
+                ),
                 redeemedscore: parseInt(String(getColumnValue('已兑换积分')).trim()) || 0,
                 remainingscore: parseInt(String(getColumnValue('剩余积分')).trim()) || 0,
                 status: autoStatus, // 根据服务时长2025与讲解积分判定
@@ -819,10 +845,14 @@ const VolunteerPage: React.FC = () => {
                 serviceCount: parseInt(String(getColumnValue('服务次数')).trim()) || 0,
                 serviceHours: parseInt(String(getColumnValue('总服务小时') || '0').replace('小时', '')) || 0,
                 serviceHours2025: parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0,
-                serviceScore: parseInt(String(getColumnValue('服务积分')).trim()) || 0, // 服务积分
+                serviceScore: Math.floor((parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0) / 4), // 服务积分=服务时长2025/4（取整）
                 explainScore: parseInt(String(getColumnValue('讲解积分')).trim()) || 0, // 讲解积分
                 bonusScore: parseInt(String(getColumnValue('附加积分')).trim()) || 0, // 附加积分
-                totalscore: parseInt(String(getColumnValue('累计获得积分')).trim()) || 0,
+                totalscore: (
+                  Math.floor((parseInt(String(getColumnValue('服务时长2025') || '0').replace('小时', '')) || 0) / 4) +
+                  (parseInt(String(getColumnValue('讲解积分')).trim()) || 0) +
+                  (parseInt(String(getColumnValue('附加积分')).trim()) || 0)
+                ),
                 redeemedscore: parseInt(String(getColumnValue('已兑换积分')).trim()) || 0,
                 remainingscore: parseInt(String(getColumnValue('剩余积分')).trim()) || 0,
                 status: autoStatus,
@@ -982,7 +1012,7 @@ const VolunteerPage: React.FC = () => {
           const updatedData = volunteers.map(volunteer => ({
             ...volunteer,
             serviceHours2025: volunteer.serviceHours2025 || 0,
-            status: determineStatus(volunteer.serviceHours2025 || 0, volunteer.explainScore || 0)
+            status: determineStatus(volunteer.type as any, volunteer.serviceHours2025 || 0, volunteer.explainScore || 0)
           }));
           
           if (isLocalAdmin()) {
@@ -1298,7 +1328,7 @@ const VolunteerPage: React.FC = () => {
         已兑换积分: v.redeemedscore,
         剩余积分: v.remainingscore,
         备注: v.remark || '',
-        状态: ((s => s === 'active' ? '活跃' : s === 'inactive' ? '非活跃' : '需考核')(determineStatus(v.serviceHours2025 || 0, v.explainScore || 0)))
+        状态: ((s => s === 'active' ? '活跃' : s === 'inactive' ? '非活跃' : '需考核')(determineStatus(v.type as any, v.serviceHours2025 || 0, v.explainScore || 0)))
       }));
 
       // 创建工作簿
@@ -1367,37 +1397,43 @@ const VolunteerPage: React.FC = () => {
     setTimeRange(range);
   };
 
-  // 计算服务积分（根据服务时长）
-  const calculateServiceScore = (serviceHours: number): number => {
-    // 每4小时服务获得1积分
-    // 例如：4小时=1积分，8小时=2积分，12小时=3积分
-    return Math.floor(serviceHours / 4);
+  // 计算服务积分（根据“服务时长2025”）
+  // 规则：每满4小时记1分
+  const calculateServiceScore = (serviceHours2025: number): number => {
+    const hours = Number(serviceHours2025) || 0;
+    return Math.floor(hours / 4);
   };
 
-  // 根据服务时长2025与讲解积分自动判定状态
-  const determineStatus = (serviceHours2025: number, explainScore: number): 'active' | 'inactive' | 'need_review' => {
+  // 根据类型 + 服务时长2025 + 讲解积分自动判定状态
+  // 规则：
+  // - 场馆服务：时长为0 => 非活跃；时长>0 => 活跃（不出现“需考核”）
+  // - 讲解服务：时长为0 => 非活跃；时长>0 且 讲解积分为0 => 需考核；否则活跃
+  function determineStatus(
+    type: '场馆服务' | '讲解服务' | string,
+    serviceHours2025: number,
+    explainScore: number
+  ): 'active' | 'inactive' | 'need_review' {
     const hours = Number(serviceHours2025) || 0;
     const explain = Number(explainScore) || 0;
-    if (hours === 0) {
-      return 'inactive';
-    }
-    if (explain === 0) {
-      return 'need_review';
+    if (hours === 0) return 'inactive';
+    if (type === '讲解服务') {
+      if (explain === 0) return 'need_review';
     }
     return 'active';
-  };
+  }
 
   // 提交表单
   const handleSubmit = async (values: any) => {
     try {
       const serviceHours = values.serviceHours || 0;
-      const serviceScore = calculateServiceScore(serviceHours);
+      const serviceHours2025Val = parseInt(values.serviceHours2025) || 0;
+      const serviceScore = calculateServiceScore(serviceHours2025Val);
       const explainScore = values.explainScore || 0;
           // const bonusScore = values.bonusScore || 0; // 附加积分 - 暂时注释，Supabase数据库中没有此字段
     const totalScore = serviceScore + explainScore; // 总积分 = 服务积分 + 讲解积分
 
       // 根据服务时长2025和讲解积分自动判定状态
-      const autoStatus = determineStatus(parseInt(values.serviceHours2025) || 0, explainScore);
+      const autoStatus = determineStatus(values.type as any, parseInt(values.serviceHours2025) || 0, explainScore);
 
       const newVolunteer: VolunteerData = {
         id: editingVolunteer?.id || Date.now().toString(),

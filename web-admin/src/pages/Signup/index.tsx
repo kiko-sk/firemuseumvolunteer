@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Statistic, 
-  Table, 
-  Button, 
-  Space, 
-  Tag, 
-  Modal, 
-  Form, 
-  Input, 
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Table,
+  Button,
+  Space,
+  Tag,
+  Modal,
+  Form,
+  Input,
   InputNumber,
-  Select, 
-  DatePicker, 
-  Switch, 
+  Select,
+  DatePicker,
+  Switch,
   TimePicker,
   message,
   Alert,
@@ -25,9 +25,9 @@ import {
   Typography,
   Divider
 } from 'antd';
-import { 
-  UserAddOutlined, 
-  CheckCircleOutlined, 
+import {
+  UserAddOutlined,
+  CheckCircleOutlined,
   ClockCircleOutlined,
   SettingOutlined,
   BellOutlined,
@@ -49,11 +49,11 @@ import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import dayOfYear from 'dayjs/plugin/dayOfYear';
-import { 
-  fetchSignupRecords, 
-  addSignupRecord, 
-  updateSignupRecord, 
-  deleteSignupRecord, 
+import {
+  fetchSignupRecords,
+  addSignupRecord,
+  updateSignupRecord,
+  deleteSignupRecord,
   batchDeleteSignupRecords,
   fetchSignupSettings,
   saveSignupSettings,
@@ -136,7 +136,7 @@ const SignupPage: React.FC = () => {
   const now = dayjs();
   const thisSunday = now.day(0); // 本周日
   const thisWednesday = now.day(3); // 本周三
-  
+
   const [signupSettings, setSignupSettings] = useState<SignupSettings>({
     id: '1',
     autoOpen: true,
@@ -165,6 +165,9 @@ const SignupPage: React.FC = () => {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [currentTime, setCurrentTime] = useState<Dayjs>(dayjs());
   const [form] = Form.useForm();
+  const [signupForm] = Form.useForm();
+  const [signupModalVisible, setSignupModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<SignupRecord | null>(null);
   const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -190,15 +193,15 @@ const SignupPage: React.FC = () => {
           // 本地管理员，使用localStorage
           const savedSignupRecords = localStorage.getItem('signupRecords');
           const savedSignupSettings = localStorage.getItem('signupSettings');
-          
+
           if (savedSignupRecords) {
             setSignupRecords(JSON.parse(savedSignupRecords));
           }
-          
+
           if (savedSignupSettings) {
             setSignupSettings(JSON.parse(savedSignupSettings));
           }
-          
+
           // 生成本周的服务时段
           await generateServiceSlots();
         } else {
@@ -209,15 +212,15 @@ const SignupPage: React.FC = () => {
               fetchSignupSettings(),
               fetchServiceSlots()
             ]);
-            
+
             if (records) {
               setSignupRecords(records);
             }
-            
+
             if (settings) {
               setSignupSettings(settings);
             }
-            
+
             if (slots && slots.length > 0) {
               setServiceSlots(slots);
             } else {
@@ -227,7 +230,7 @@ const SignupPage: React.FC = () => {
           } catch (error) {
             console.error('加载云端数据失败:', error);
             message.error('加载云端数据失败，使用本地数据');
-            
+
             // 生成本周的服务时段
             await generateServiceSlots();
           }
@@ -236,7 +239,7 @@ const SignupPage: React.FC = () => {
         console.error('数据加载失败:', error);
       }
     };
-    
+
     loadData();
   }, []);
 
@@ -247,11 +250,11 @@ const SignupPage: React.FC = () => {
     setCurrentTime(now);
     console.log('页面加载，立即检查时间');
     checkAutoOpenTime(now);
-    
+
     const timer = setInterval(() => {
       const now = dayjs();
       setCurrentTime(now);
-      
+
       // 调试信息
       console.log('时间检查:', {
         currentDate: now.format('YYYY-MM-DD'),
@@ -262,7 +265,7 @@ const SignupPage: React.FC = () => {
         closeTime: signupSettings.closeTime,
         status: signupSettings.status
       });
-      
+
       checkAutoOpenTime(now);
     }, 60000); // 每分钟检查一次
 
@@ -282,27 +285,27 @@ const SignupPage: React.FC = () => {
   const generateServiceSlots = async () => {
     const slots: ServiceSlot[] = [];
     const now = dayjs();
-    
+
     // 计算本周的周日
     const thisSunday = now.day(0); // 本周日
-    
+
     // 计算服务开始和结束日期（从本周六到下周五）
     const serviceStartDate = thisSunday.add(6, 'day'); // 本周六
     const serviceEndDate = thisSunday.add(12, 'day'); // 下周五
-    
+
     // 生成从服务开始到结束日期的所有时段
     let currentDate = serviceStartDate;
     while (currentDate.isSame(serviceEndDate) || currentDate.isBefore(serviceEndDate)) {
       const dayOfWeek = currentDate.day();
       const dateStr = currentDate.format('YYYY-MM-DD');
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // 周日或周六
-      
+
       // 跳过周一（闭馆日）
       if (dayOfWeek === 1) {
         currentDate = currentDate.add(1, 'day');
         continue;
       }
-      
+
       // 上午时段
       slots.push({
         id: `slot_${dateStr}_am_venue`,
@@ -316,7 +319,7 @@ const SignupPage: React.FC = () => {
         status: signupSettings.status === 'open' ? 'open' : 'closed',
         isWeekend
       });
-      
+
       slots.push({
         id: `slot_${dateStr}_am_explain`,
         date: dateStr,
@@ -329,7 +332,7 @@ const SignupPage: React.FC = () => {
         status: signupSettings.status === 'open' ? 'open' : 'closed',
         isWeekend
       });
-      
+
       // 下午时段
       slots.push({
         id: `slot_${dateStr}_pm_venue`,
@@ -343,7 +346,7 @@ const SignupPage: React.FC = () => {
         status: signupSettings.status === 'open' ? 'open' : 'closed',
         isWeekend
       });
-      
+
       slots.push({
         id: `slot_${dateStr}_pm_explain`,
         date: dateStr,
@@ -356,7 +359,7 @@ const SignupPage: React.FC = () => {
         status: signupSettings.status === 'open' ? 'open' : 'closed',
         isWeekend
       });
-      
+
       // 全天时段（只在周末提供）
       if (isWeekend) {
         slots.push({
@@ -371,7 +374,7 @@ const SignupPage: React.FC = () => {
           status: signupSettings.status === 'open' ? 'open' : 'closed',
           isWeekend
         });
-        
+
         slots.push({
           id: `slot_${dateStr}_full_explain`,
           date: dateStr,
@@ -385,13 +388,13 @@ const SignupPage: React.FC = () => {
           isWeekend
         });
       }
-      
+
       currentDate = currentDate.add(1, 'day');
     }
-    
+
     console.log('生成服务时段:', slots.length, '个时段');
     setServiceSlots(slots);
-    
+
     // 如果不是本地管理员，保存到云端
     if (!isLocalAdmin()) {
       try {
@@ -419,7 +422,7 @@ const SignupPage: React.FC = () => {
 
     const currentDate = now.format('YYYY-MM-DD');
     const currentTimeStr = now.format('HH:mm');
-    
+
     console.log('检查自动开启时间:', {
       currentDate,
       currentTimeStr,
@@ -429,22 +432,22 @@ const SignupPage: React.FC = () => {
       closeTime: signupSettings.closeTime,
       status: signupSettings.status
     });
-    
+
     // 检查是否到了开启时间
     if (currentDate === signupSettings.openDate && currentTimeStr === signupSettings.openTime) {
       console.log('触发自动开启报名');
       openSignup();
     }
-    
+
     // 检查是否到了关闭时间
     if (currentDate === signupSettings.closeDate && currentTimeStr === signupSettings.closeTime) {
       console.log('触发自动关闭报名');
       closeSignup();
     }
-    
+
     // 额外检查：如果当前时间已经过了开启时间但状态还是closed，则自动开启
-    if (signupSettings.status === 'closed' && 
-        currentDate === signupSettings.openDate && 
+    if (signupSettings.status === 'closed' &&
+        currentDate === signupSettings.openDate &&
         currentTimeStr >= signupSettings.openTime) {
       console.log('检测到应该开启但未开启，自动开启报名');
       openSignup();
@@ -459,12 +462,12 @@ const SignupPage: React.FC = () => {
       lastOpenTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
       currentWeek: `第${Math.ceil(dayjs().dayOfYear() / 7)}周`
     }));
-    
+
     // 推送通知到APP
     pushNotificationToApp('报名开启', '新一轮志愿服务报名已开启，请及时报名！');
-    
+
     message.success('报名系统已自动开启！');
-    
+
     // 更新服务时段状态
     setTimeout(() => updateServiceSlotsStatus('open'), 100);
   };
@@ -475,12 +478,12 @@ const SignupPage: React.FC = () => {
       ...prev,
       status: 'closed'
     }));
-    
+
     // 推送通知到APP
     pushNotificationToApp('报名截止', '本周报名已截止，请关注下周报名时间！');
-    
+
     message.warning('报名系统已自动关闭！');
-    
+
     // 更新服务时段状态
     setTimeout(() => updateServiceSlotsStatus('closed'), 100);
   };
@@ -513,8 +516,8 @@ const SignupPage: React.FC = () => {
         record.date,
         record.serviceType,
         record.timeSlot,
-        record.status === 'confirmed' ? '已确认' : 
-        record.status === 'pending' ? '待确认' : 
+        record.status === 'confirmed' ? '已确认' :
+        record.status === 'pending' ? '待确认' :
         record.status === 'cancelled' ? '已取消' : '候补',
         record.signupTime
       ])
@@ -529,7 +532,7 @@ const SignupPage: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     message.success('报名数据导出成功！');
   };
 
@@ -538,8 +541,8 @@ const SignupPage: React.FC = () => {
     message.info('导入功能开发中，请手动添加报名记录');
   };
 
-  // 确认报名
-  const handleConfirmSignup = (recordId: string) => {
+  // 确认报名（云端模式写入Supabase）
+  const handleConfirmSignup = async (recordId: string) => {
     const updatedRecords = signupRecords.map(record => {
       if (record.id === recordId) {
         return { ...record, status: 'confirmed' as const };
@@ -547,11 +550,22 @@ const SignupPage: React.FC = () => {
       return record;
     });
     setSignupRecords(updatedRecords);
-    message.success('报名已确认');
+    try {
+      if (!isLocalAdmin()) {
+        const rec = updatedRecords.find(r => r.id === recordId);
+        if (rec) await updateSignupRecord(recordId, rec);
+      } else {
+        localStorage.setItem('signupRecords', JSON.stringify(updatedRecords));
+        setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
+      }
+      message.success('报名已确认');
+    } catch (e) {
+      message.error('云端写入失败，请重试');
+    }
   };
 
-  // 取消/拒绝报名
-  const handleCancelSignup = (recordId: string) => {
+  // 取消/拒绝报名（云端模式写入Supabase）
+  const handleCancelSignup = async (recordId: string) => {
     const updatedRecords = signupRecords.map(record => {
       if (record.id === recordId) {
         return { ...record, status: 'cancelled' as const };
@@ -559,7 +573,18 @@ const SignupPage: React.FC = () => {
       return record;
     });
     setSignupRecords(updatedRecords);
-    message.success('报名已取消');
+    try {
+      if (!isLocalAdmin()) {
+        const rec = updatedRecords.find(r => r.id === recordId);
+        if (rec) await updateSignupRecord(recordId, rec);
+      } else {
+        localStorage.setItem('signupRecords', JSON.stringify(updatedRecords));
+        setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
+      }
+      message.success('报名已取消');
+    } catch (e) {
+      message.error('云端写入失败，请重试');
+    }
   };
 
   // 查看报名详情
@@ -577,8 +602,8 @@ const SignupPage: React.FC = () => {
             <Descriptions.Item label="服务类型">{record.serviceType}</Descriptions.Item>
             <Descriptions.Item label="时间段">{record.timeSlot}</Descriptions.Item>
             <Descriptions.Item label="状态">
-              {record.status === 'confirmed' ? '已确认' : 
-               record.status === 'pending' ? '待确认' : 
+              {record.status === 'confirmed' ? '已确认' :
+               record.status === 'pending' ? '待确认' :
                record.status === 'cancelled' ? '已取消' : '候补'}
             </Descriptions.Item>
             <Descriptions.Item label="报名时间">{record.signupTime}</Descriptions.Item>
@@ -592,7 +617,7 @@ const SignupPage: React.FC = () => {
   };
 
   // 处理请假申请
-  const handleLeaveRequest = (record: SignupRecord, reason: string) => {
+  const handleLeaveRequest = async (record: SignupRecord, reason: string) => {
     const leaveNotification: LeaveNotification = {
       id: `leave_${Date.now()}`,
       volunteerId: record.volunteerId,
@@ -608,7 +633,7 @@ const SignupPage: React.FC = () => {
     };
 
     setLeaveNotifications(prev => [...prev, leaveNotification]);
-    
+
     // 将原报名记录状态改为已取消
     const updatedRecords = signupRecords.map(r => {
       if (r.id === record.id) {
@@ -617,6 +642,18 @@ const SignupPage: React.FC = () => {
       return r;
     });
     setSignupRecords(updatedRecords);
+
+    try {
+      if (!isLocalAdmin()) {
+        const rec = updatedRecords.find(r => r.id === record.id);
+        if (rec) await updateSignupRecord(record.id, rec);
+      } else {
+        localStorage.setItem('signupRecords', JSON.stringify(updatedRecords));
+        setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
+      }
+    } catch (e) {
+      message.error('云端写入失败，请重试');
+    }
 
     // 推送通知给其他志愿者
     pushNotificationToApp(
@@ -629,8 +666,8 @@ const SignupPage: React.FC = () => {
 
   // 批准请假申请
   const handleApproveLeave = (leaveId: string) => {
-    setLeaveNotifications(prev => 
-      prev.map(leave => 
+    setLeaveNotifications(prev =>
+      prev.map(leave =>
         leave.id === leaveId ? { ...leave, status: 'approved' as const } : leave
       )
     );
@@ -638,7 +675,7 @@ const SignupPage: React.FC = () => {
   };
 
   // 拒绝请假申请
-  const handleRejectLeave = (leaveId: string) => {
+  const handleRejectLeave = async (leaveId: string) => {
     const leave = leaveNotifications.find(l => l.id === leaveId);
     if (leave) {
       // 恢复原报名记录
@@ -649,10 +686,21 @@ const SignupPage: React.FC = () => {
         return r;
       });
       setSignupRecords(updatedRecords);
+      try {
+        if (!isLocalAdmin()) {
+          const rec = updatedRecords.find(r => r.serviceSlotId === leave.serviceSlotId && r.date === leave.date);
+          if (rec) await updateSignupRecord(rec.id, rec);
+        } else {
+          localStorage.setItem('signupRecords', JSON.stringify(updatedRecords));
+          setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
+        }
+      } catch (e) {
+        message.error('云端写入失败，请重试');
+      }
     }
 
-    setLeaveNotifications(prev => 
-      prev.map(l => 
+    setLeaveNotifications(prev =>
+      prev.map(l =>
         l.id === leaveId ? { ...l, status: 'rejected' as const } : l
       )
     );
@@ -719,9 +767,9 @@ const SignupPage: React.FC = () => {
         const now = dayjs();
     const currentDate = now.format('YYYY-MM-DD');
     const currentTimeStr = now.format('HH:mm');
-    
+
     let testResult = '';
-    
+
     if (currentDate === signupSettings.openDate && currentTimeStr === signupSettings.openTime) {
       testResult = '✅ 当前时间符合开启条件，系统将自动开启报名';
     } else if (currentDate === signupSettings.closeDate && currentTimeStr === signupSettings.closeTime) {
@@ -730,7 +778,7 @@ const SignupPage: React.FC = () => {
       const nextOpen = calculateNextOpenTime(signupSettings);
       testResult = `⏰ 当前时间不符合自动操作条件，下次开启时间：${nextOpen}`;
     }
-    
+
     Modal.info({
       title: '设置测试结果',
       content: (
@@ -751,20 +799,20 @@ const SignupPage: React.FC = () => {
 
   // 筛选报名记录
   const filteredSignupRecords = signupRecords.filter(record => {
-    const matchesSearch = record.volunteerName.includes(searchText) || 
+    const matchesSearch = record.volunteerName.includes(searchText) ||
                          record.volunteerPhone.includes(searchText);
     const matchesStatus = filterStatus === 'all' || record.status === filterStatus;
     const matchesServiceType = filterServiceType === 'all' || record.serviceType === filterServiceType;
-    
+
     let matchesDate = true;
     if (filterDateRange && filterDateRange[0] && filterDateRange[1]) {
       const recordDate = dayjs(record.date);
       const startDate = filterDateRange[0];
       const endDate = filterDateRange[1];
-      matchesDate = recordDate.isAfter(startDate.subtract(1, 'day')) && 
+      matchesDate = recordDate.isAfter(startDate.subtract(1, 'day')) &&
                    recordDate.isBefore(endDate.add(1, 'day'));
     }
-    
+
     return matchesSearch && matchesStatus && matchesServiceType && matchesDate;
   });
 
@@ -780,7 +828,7 @@ const SignupPage: React.FC = () => {
         closeTime: values.closeTime ? values.closeTime.format('HH:mm') : signupSettings.closeTime,
         nextOpenTime: calculateNextOpenTime(values)
       };
-      
+
       if (isLocalAdmin()) {
         // 本地管理员，使用localStorage
         setSignupSettings(updatedSettings);
@@ -791,10 +839,10 @@ const SignupPage: React.FC = () => {
         await saveSignupSettings(updatedSettings);
         setSignupSettings(updatedSettings);
       }
-      
+
       setSettingsModalVisible(false);
       message.success('设置已保存！');
-      
+
       // 重新生成服务时段以更新状态
       setTimeout(async () => await generateServiceSlots(), 100);
     } catch (error) {
@@ -807,14 +855,14 @@ const SignupPage: React.FC = () => {
   const calculateNextOpenTime = (settings: any) => {
     const now = dayjs();
     const openDateTime = dayjs(settings.openDate + ' ' + settings.openTime);
-    
+
     // 如果开启时间已经过了，返回下一个开启时间
     if (openDateTime.isBefore(now)) {
       // 这里可以根据需要设置下一次开启时间
       // 暂时返回当前开启时间加7天
       return openDateTime.add(7, 'day').format('YYYY-MM-DD HH:mm:ss');
     }
-    
+
     return openDateTime.format('YYYY-MM-DD HH:mm:ss');
   };
 
@@ -924,8 +972,8 @@ const SignupPage: React.FC = () => {
   const signupRecordColumns: ColumnsType<SignupRecord> = [
     {
       title: (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           onChange={(e) => handleSelectAll(e.target.checked)}
           checked={selectAll && signupRecords.length > 0}
           ref={selectAllRef}
@@ -935,8 +983,8 @@ const SignupPage: React.FC = () => {
       key: 'selection',
       width: 60,
       render: (_, record: SignupRecord) => (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           onChange={(e) => {
             if (e.target.checked) {
               setSelectedRecords(prev => [...prev, record.id]);
@@ -1027,16 +1075,16 @@ const SignupPage: React.FC = () => {
         <Space size="small">
           {record.status === 'pending' && (
             <>
-              <Button 
-                type="link" 
+              <Button
+                type="link"
                 size="small"
                 onClick={() => handleConfirmSignup(record.id)}
               >
                 确认
               </Button>
-              <Button 
-                type="link" 
-                size="small" 
+              <Button
+                type="link"
+                size="small"
                 danger
                 onClick={() => handleCancelSignup(record.id)}
               >
@@ -1045,8 +1093,8 @@ const SignupPage: React.FC = () => {
             </>
           )}
           {record.status === 'confirmed' && (
-            <Button 
-              type="link" 
+            <Button
+              type="link"
               size="small"
               onClick={() => {
                 Modal.confirm({
@@ -1055,6 +1103,8 @@ const SignupPage: React.FC = () => {
                     <Input.TextArea
                       placeholder="请输入请假原因"
                       rows={3}
+
+
                       id="leaveReason"
                     />
                   ),
@@ -1072,8 +1122,8 @@ const SignupPage: React.FC = () => {
               请假
             </Button>
           )}
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             size="small"
             onClick={() => handleViewDetails(record)}
           >
@@ -1090,14 +1140,14 @@ const SignupPage: React.FC = () => {
   const waitlistSignups = signupRecords.filter(s => s.status === 'waitlist').length;
 
   return (
-    <div style={{ 
-      padding: '16px', 
+    <div style={{
+      padding: '16px',
       background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
       minHeight: '100vh'
     }}>
       {/* 系统状态卡片 */}
-      <Card 
-        style={{ 
+      <Card
+        style={{
           marginBottom: 16,
           borderRadius: '12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
@@ -1118,9 +1168,9 @@ const SignupPage: React.FC = () => {
           <Col xs={24} sm={24} md={8}>
             <Descriptions column={1} size="small">
               <Descriptions.Item label="自动开启">
-                <Switch 
-                  checked={signupSettings.autoOpen} 
-                  disabled 
+                <Switch
+                  checked={signupSettings.autoOpen}
+                  disabled
                 />
               </Descriptions.Item>
               <Descriptions.Item label="开启时间">
@@ -1137,8 +1187,8 @@ const SignupPage: React.FC = () => {
           </Col>
           <Col xs={24} sm={24} md={8}>
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<PlayCircleOutlined />}
                 onClick={handleManualOpen}
                 disabled={signupSettings.status === 'open'}
@@ -1146,8 +1196,8 @@ const SignupPage: React.FC = () => {
               >
                 手动开启报名
               </Button>
-              <Button 
-                danger 
+              <Button
+                danger
                 icon={<PauseCircleOutlined />}
                 onClick={handleManualClose}
                 disabled={signupSettings.status === 'closed'}
@@ -1155,7 +1205,7 @@ const SignupPage: React.FC = () => {
               >
                 手动关闭报名
               </Button>
-              <Button 
+              <Button
                 icon={<SettingOutlined />}
                 onClick={() => setSettingsModalVisible(true)}
                 size="small"
@@ -1210,8 +1260,8 @@ const SignupPage: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-              <Card 
-                style={{ 
+              <Card
+                style={{
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
                   height: 120,
@@ -1232,8 +1282,8 @@ const SignupPage: React.FC = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card 
-                style={{ 
+              <Card
+                style={{
                   background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
                   color: 'white',
                   height: 120,
@@ -1256,10 +1306,10 @@ const SignupPage: React.FC = () => {
       </Row>
 
       {/* 服务时段管理 */}
-      <Card 
-        title="服务时段管理" 
+      <Card
+        title="服务时段管理"
         extra={
-          <Button 
+          <Button
             icon={<ReloadOutlined />}
             onClick={generateServiceSlots}
           >
@@ -1276,8 +1326,8 @@ const SignupPage: React.FC = () => {
           style={{ marginBottom: 16 }}
         />
         <Table
-          columns={serviceSlotColumns} 
-          dataSource={serviceSlots} 
+          columns={serviceSlotColumns}
+          dataSource={serviceSlots}
           rowKey="id"
           pagination={false}
           size="small"
@@ -1286,7 +1336,7 @@ const SignupPage: React.FC = () => {
 
       {/* 请假通知管理 */}
       {leaveNotifications.length > 0 && (
-        <Card 
+        <Card
           title={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <BellOutlined style={{ color: '#ff4d4f' }} />
@@ -1294,7 +1344,7 @@ const SignupPage: React.FC = () => {
               <Badge count={leaveNotifications.filter(l => l.status === 'pending').length} />
             </div>
           }
-          style={{ 
+          style={{
             marginBottom: 16,
             borderRadius: '12px',
             border: '1px solid #ffccc7',
@@ -1362,16 +1412,16 @@ const SignupPage: React.FC = () => {
                   <Space size="small">
                     {record.status === 'pending' && (
                       <>
-                        <Button 
-                          type="link" 
+                        <Button
+                          type="link"
                           size="small"
                           onClick={() => handleApproveLeave(record.id)}
                         >
                           批准
                         </Button>
-                        <Button 
-                          type="link" 
-                          size="small" 
+                        <Button
+                          type="link"
+                          size="small"
                           danger
                           onClick={() => handleRejectLeave(record.id)}
                         >
@@ -1393,24 +1443,24 @@ const SignupPage: React.FC = () => {
       )}
 
       {/* 报名记录 */}
-      <Card 
-        title="报名记录" 
+      <Card
+        title="报名记录"
         extra={
           <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               icon={<UploadOutlined />}
               onClick={handleImport}
             >
               导入学生志愿者
             </Button>
-            <Button 
+            <Button
               icon={<DownloadOutlined />}
               onClick={handleExport}
             >
               导出报名数据
             </Button>
-            <Button 
+            <Button
               icon={<DeleteOutlined />}
               onClick={handleBatchDelete}
               disabled={selectedRecords.length === 0}
@@ -1418,9 +1468,9 @@ const SignupPage: React.FC = () => {
               批量删除
               {selectedRecords.length > 0 && ` (${selectedRecords.length})`}
             </Button>
-            <Button 
+            <Button
               icon={<PlusOutlined />}
-              onClick={() => message.info('学生志愿者通过导入方式添加，社会志愿者通过APP报名')}
+              onClick={() => { setEditingRecord(null); signupForm.resetFields(); setSignupModalVisible(true); }}
             >
               添加报名记录
             </Button>
@@ -1429,11 +1479,11 @@ const SignupPage: React.FC = () => {
         style={{ borderRadius: '12px' }}
       >
         {/* 筛选区域 */}
-        <div style={{ 
-          marginBottom: 16, 
-          padding: 12, 
-          background: '#f8f9fa', 
-          borderRadius: 6 
+        <div style={{
+          marginBottom: 16,
+          padding: 12,
+          background: '#f8f9fa',
+          borderRadius: 6
         }}>
           <Row gutter={[12, 12]} align="middle">
             <Col xs={24} sm={12} md={6}>
@@ -1517,7 +1567,7 @@ const SignupPage: React.FC = () => {
               />
             </Col>
             <Col xs={24} sm={24} md={2}>
-              <Button 
+              <Button
                 onClick={() => {
                   setSearchText('');
                   setFilterStatus('all');
@@ -1533,9 +1583,9 @@ const SignupPage: React.FC = () => {
           </Row>
         </div>
 
-        <Table 
-          columns={signupRecordColumns} 
-          dataSource={filteredSignupRecords} 
+        <Table
+          columns={signupRecordColumns}
+          dataSource={filteredSignupRecords}
           rowKey="id"
           pagination={{
             showSizeChanger: true,
@@ -1593,7 +1643,7 @@ const SignupPage: React.FC = () => {
                 label="开启日期"
                 rules={[{ required: true, message: '请选择开启日期' }]}
               >
-                <DatePicker 
+                <DatePicker
                   placeholder="选择开启日期"
                   format="YYYY-MM-DD"
                   style={{ width: '100%' }}
@@ -1610,8 +1660,8 @@ const SignupPage: React.FC = () => {
                 label="开启时间"
                 rules={[{ required: true, message: '请选择开启时间' }]}
               >
-                <TimePicker 
-                  format="HH:mm" 
+                <TimePicker
+                  format="HH:mm"
                   placeholder="选择开启时间"
                   minuteStep={5}
                   style={{ width: '100%' }}
@@ -1629,7 +1679,7 @@ const SignupPage: React.FC = () => {
                 label="关闭日期"
                 rules={[{ required: true, message: '请选择关闭日期' }]}
               >
-                <DatePicker 
+                <DatePicker
                   placeholder="选择关闭日期"
                   format="YYYY-MM-DD"
                   style={{ width: '100%' }}
@@ -1646,8 +1696,8 @@ const SignupPage: React.FC = () => {
                 label="关闭时间"
                 rules={[{ required: true, message: '请选择关闭时间' }]}
               >
-                <TimePicker 
-                  format="HH:mm" 
+                <TimePicker
+                  format="HH:mm"
                   placeholder="选择关闭时间"
                   minuteStep={5}
                   style={{ width: '100%' }}
@@ -1665,9 +1715,9 @@ const SignupPage: React.FC = () => {
                 label="提前报名天数"
                 rules={[{ required: true, message: '请设置提前报名天数' }]}
               >
-                <InputNumber 
-                  min={1} 
-                  max={30} 
+                <InputNumber
+                  min={1}
+                  max={30}
                   placeholder="默认7天"
                   style={{ width: '100%' }}
                 />
@@ -1769,6 +1819,122 @@ const SignupPage: React.FC = () => {
               <Button type="primary" htmlType="submit">
                 保存设置
               </Button>
+
+      {/* 新增/编辑报名记录弹窗 */}
+      <Modal
+        title={editingRecord ? '编辑报名记录' : '新增报名记录'}
+        open={signupModalVisible}
+        onCancel={() => { setSignupModalVisible(false); setEditingRecord(null); }}
+        footer={null}
+        destroyOnClose
+      >
+        <Form
+          form={signupForm}
+          layout="vertical"
+          onFinish={async (values) => {
+            try {
+              const payload = {
+                id: editingRecord?.id || `${Date.now()}`,
+                volunteerId: values.volunteerId || '',
+                volunteerName: values.volunteerName,
+                volunteerPhone: values.volunteerPhone,
+                volunteerType: values.volunteerType,
+                serviceSlotId: values.serviceSlotId || '',
+                date: values.date ? values.date.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+                serviceType: values.serviceType,
+                timeSlot: values.timeSlot,
+                signupTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                status: values.status || 'pending',
+                points: Number(values.points || 0),
+                notes: values.notes || '',
+              };
+              if (isLocalAdmin()) {
+                // 本地
+                let newList = [] as any[];
+                if (editingRecord) {
+                  newList = signupRecords.map(r => r.id === editingRecord.id ? payload : r);
+                } else {
+                  newList = [payload, ...signupRecords];
+                }
+                setSignupRecords(newList);
+                localStorage.setItem('signupRecords', JSON.stringify(newList));
+                setLastSaveTime(dayjs().format('YYYY-MM-DD HH:mm:ss'));
+              } else {
+                // 云端
+                if (editingRecord) {
+                  await updateSignupRecord(editingRecord.id, payload);
+                } else {
+                  await addSignupRecord(payload);
+                }
+                const list = await fetchSignupRecords();
+                setSignupRecords(list || []);
+              }
+              setSignupModalVisible(false);
+              setEditingRecord(null);
+              signupForm.resetFields();
+              message.success('保存成功');
+            } catch (err) {
+              console.error(err);
+              message.error('保存失败，请重试');
+            }
+          }}
+          initialValues={{
+            volunteerType: '学生志愿者',
+            serviceType: '场馆服务',
+            timeSlot: '上午',
+            status: 'pending',
+          }}
+        >
+          <Form.Item name="volunteerName" label="志愿者姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="volunteerPhone" label="手机号码" rules={[{ required: true, message: '请输入手机号码' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="volunteerType" label="志愿者类型" rules={[{ required: true }]}>
+            <Select>
+              <Select.Option value="学生志愿者">学生志愿者</Select.Option>
+              <Select.Option value="社会志愿者">社会志愿者</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="serviceType" label="服务类型" rules={[{ required: true }]}>
+            <Select>
+              <Select.Option value="场馆服务">场馆服务</Select.Option>
+              <Select.Option value="讲解服务">讲解服务</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="date" label="服务日期" rules={[{ required: true, message: '请选择日期' }]}>
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="timeSlot" label="时段" rules={[{ required: true }]}>
+            <Select>
+              <Select.Option value="上午">上午</Select.Option>
+              <Select.Option value="下午">下午</Select.Option>
+              <Select.Option value="全天">全天</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="points" label="积分" >
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="status" label="状态" >
+            <Select>
+              <Select.Option value="pending">待确认</Select.Option>
+              <Select.Option value="confirmed">已确认</Select.Option>
+              <Select.Option value="cancelled">已取消</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="notes" label="备注">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button onClick={() => { setSignupModalVisible(false); setEditingRecord(null); }}>取消</Button>
+              <Button type="primary" htmlType="submit">保存</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
             </Space>
           </Form.Item>
         </Form>
@@ -1777,4 +1943,4 @@ const SignupPage: React.FC = () => {
   );
 };
 
-export default SignupPage; 
+export default SignupPage;

@@ -56,19 +56,34 @@ const HomePage: React.FC = () => {
         try {
           const parsedData = JSON.parse(savedData);
           setVolunteers(parsedData);
-          
-          // 计算统计数据
-          const total = parsedData.length;
-          const active = parsedData.filter((v: VolunteerData) => v.status === 'active').length;
-          const needReview = parsedData.filter((v: VolunteerData) => v.status === 'need_review').length;
-          const inactive = parsedData.filter((v: VolunteerData) => v.status === 'inactive').length;
-          const totalScore = parsedData.reduce((sum: number, v: VolunteerData) => sum + v.totalScore, 0);
-          const totalServiceHours = parsedData.reduce((sum: number, v: VolunteerData) => sum + v.serviceHours, 0);
-          const avgAge = total > 0 ? Math.round(parsedData.reduce((sum: number, v: VolunteerData) => sum + v.age, 0) / total) : 0;
-          const maleCount = parsedData.filter((v: VolunteerData) => v.gender === '男').length;
-          const femaleCount = parsedData.filter((v: VolunteerData) => v.gender === '女').length;
-          const explainServiceCount = parsedData.filter((v: VolunteerData) => v.type === '讲解服务').length;
-          const venueServiceCount = parsedData.filter((v: VolunteerData) => v.type === '场馆服务').length;
+
+          // 统一字段并按最新规则计算积分（与志愿者管理页对齐）
+          const normalized = (Array.isArray(parsedData) ? parsedData : []).map((r: any) => {
+            const toNum = (v: any, d = 0) => {
+              const n = Number(v);
+              return Number.isFinite(n) ? n : d;
+            };
+            const serviceHours = toNum(r.serviceHours ?? r.servicehours, 0);
+            const sh2025 = toNum(r.serviceHours2025 ?? r.servicehours2025, 0);
+            const explain = toNum(r.explainScore ?? r.explainscore, 0);
+            const bonus = toNum(r.bonusScore ?? r.bonusscore, 0);
+            const serviceScoreBy2025 = Math.floor(sh2025 / 4);
+            const totalscore = toNum(r.totalscore ?? r.totalScore, serviceScoreBy2025 + explain + bonus);
+            return { ...r, serviceHours, serviceHours2025: sh2025, explainScore: explain, bonusScore: bonus, totalscore };
+          });
+
+          // 计算统计数据（用 normalized 数据）
+          const total = normalized.length;
+          const active = normalized.filter((v: any) => v.status === 'active').length;
+          const needReview = normalized.filter((v: any) => v.status === 'need_review').length;
+          const inactive = normalized.filter((v: any) => v.status === 'inactive').length;
+          const totalScore = normalized.reduce((sum: number, v: any) => sum + (Number(v.totalscore) || 0), 0);
+          const totalServiceHours = normalized.reduce((sum: number, v: any) => sum + (Number(v.serviceHours) || 0), 0);
+          const avgAge = total > 0 ? Math.round(normalized.reduce((sum: number, v: any) => sum + (Number(v.age) || 0), 0) / total) : 0;
+          const maleCount = normalized.filter((v: any) => v.gender === '男').length;
+          const femaleCount = normalized.filter((v: any) => v.gender === '女').length;
+          const explainServiceCount = normalized.filter((v: any) => v.type === '讲解服务').length;
+          const venueServiceCount = normalized.filter((v: any) => v.type === '场馆服务').length;
 
           setStats({
             total,
