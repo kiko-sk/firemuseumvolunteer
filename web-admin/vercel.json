@@ -12,5 +12,10 @@
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "umijs"
+  "framework": "umijs",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 } 
