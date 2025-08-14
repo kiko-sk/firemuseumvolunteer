@@ -4,6 +4,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const data = await db.getPoints();
+      // 返回与前端期望的格式一致的数据
       res.status(200).json(data);
     } catch (error) {
       res.status(500).json({ error: '获取数据失败' });

@@ -4,9 +4,10 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const data = await db.getGifts();
-      res.status(200).json(data);
+      // 返回与前端期望的格式一致的数据
+      res.status(200).json({ code: 0, data: data });
     } catch (error) {
-      res.status(500).json({ error: '获取数据失败' });
+      res.status(500).json({ code: 1, msg: '获取数据失败' });
     }
   } else if (req.method === 'POST') {
     try {

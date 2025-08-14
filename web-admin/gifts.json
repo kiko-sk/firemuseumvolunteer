@@ -1,0 +1,37 @@
+[
+  {
+    "id": "1",
+    "name": "消防博物馆纪念徽章",
+    "points": 50,
+    "stock": 20,
+    "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "2", 
+    "name": "消防安全知识手册",
+    "points": 30,
+    "stock": 50,
+    "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "3",
+    "name": "消防员模型玩具",
+    "points": 100,
+    "stock": 10,
+    "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "4",
+    "name": "博物馆参观券",
+    "points": 80,
+    "stock": 15,
+    "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "5",
+    "name": "消防主题T恤",
+    "points": 120,
+    "stock": 8,
+    "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"
+  }
+]

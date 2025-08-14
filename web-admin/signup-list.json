@@ -1,0 +1,36 @@
+[
+  {
+    "id": "1",
+    "serviceType": "场馆服务",
+    "timeSlot": "上午",
+    "signupStart": "2025-07-30 09:00:00",
+    "signupEnd": "2025-07-30 12:00:00",
+    "signedCount": 2,
+    "requiredCount": 5,
+    "signups": [
+      {
+        "name": "张三",
+        "time": "2024-01-15 09:00"
+      },
+      {
+        "name": "李四",
+        "time": "2024-01-15 09:30"
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "serviceType": "讲解服务",
+    "timeSlot": "下午",
+    "signupStart": "2025-07-30 14:00:00",
+    "signupEnd": "2025-07-30 17:00:00",
+    "signedCount": 1,
+    "requiredCount": 3,
+    "signups": [
+      {
+        "name": "王五",
+        "time": "2024-01-15 14:00"
+      }
+    ]
+  }
+]
