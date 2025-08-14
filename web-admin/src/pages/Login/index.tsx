@@ -106,24 +106,18 @@ const LoginPage: React.FC = () => {
         setLoading(false);
         return;
       }
-      let result = await supabase.auth.signUp({ email, password });
-      if (result.error) {
-        // Supabase注册失败，使用本地注册
-        saveRegisteredUser({
-          name: values.name,
-          position: values.position,
-          email: email,
-          password: password,
-          createdAt: new Date().toISOString()
-        });
-        setRegisterModalVisible(false);
-        registerForm.resetFields();
-        message.success('注册成功！请登录');
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        // options: { emailRedirectTo: window.location.origin + '/login' },
+      });
+      if (error) {
+        message.error(error.message || '注册失败，请稍后再试');
         return;
       }
       setRegisterModalVisible(false);
       registerForm.resetFields();
-      message.success('注册成功！请登录');
+      message.success('注册成功！验证邮件已发送至您的邮箱，请完成验证后再登录');
     } catch (err) {
       message.error('注册失败，请重试');
     } finally {
@@ -282,7 +276,7 @@ const LoginPage: React.FC = () => {
           <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }, { min: 6, max: 12, message: '密码长度需为6-12位' }, { validator: (_, value) => { if (!value) return Promise.resolve(); if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,12}$/.test(value)) { return Promise.reject('密码需包含字母和数字，且为6-12位'); } return Promise.resolve(); } }]}>
             <Input.Password maxLength={12} />
           </Form.Item>
-          <Form.Item name="confirmPassword" label="确认密码" dependencies={["password"]} rules={[{ required: true, message: '请再次输入密码' }, ({ getFieldValue }) => ({ validator(_, value) { if (!value || getFieldValue('password') === value) { return Promise.resolve(); } return Promise.resolve(); } })]}>
+          <Form.Item name="confirmPassword" label="确认密码" dependencies={["password"]} rules={[{ required: true, message: '请再次输入密码' }, ({ getFieldValue }) => ({ validator(_, value) { if (!value || getFieldValue('password') === value) { return Promise.resolve(); } return Promise.reject(new Error('两次输入的密码不一致')); } })]}>
             <Input.Password maxLength={12} />
           </Form.Item>
           <Form.Item>

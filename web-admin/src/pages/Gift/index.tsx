@@ -1,33 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Statistic, 
-  Table, 
-  Button, 
-  Space, 
-  Tag, 
-  Modal, 
-  Form, 
-  Input, 
-  InputNumber, 
-  Select, 
-  Upload, 
-  Image, 
-  message, 
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Table,
+  Button,
+  Space,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Upload,
+  Image,
+  message,
   Popconfirm,
   Tooltip,
   Typography
 } from 'antd';
-import { 
-  GiftOutlined, 
-  ShoppingCartOutlined, 
-  DollarOutlined, 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-  ExportOutlined, 
+import {
+  GiftOutlined,
+  ShoppingCartOutlined,
+  DollarOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ExportOutlined,
   UploadOutlined,
   EyeOutlined,
   PictureOutlined,
@@ -360,7 +360,7 @@ const GiftPage: React.FC = () => {
   const handleExport = async () => {
     try {
       let exportData: GiftData[] = [];
-      
+
       if (isLocalAdmin()) {
         // 本地管理员，从localStorage导出
         exportData = gifts;
@@ -493,10 +493,11 @@ const GiftPage: React.FC = () => {
   // 提交表单
   const handleSubmit = async (values: any) => {
     try {
+      const normalizedCategory = Array.isArray(values.category) ? values.category[0] : (typeof values.category === 'string' ? values.category.replace(/^\[\"|\[\'|\]|\"|\'$/g, '') : values.category);
       const giftData: GiftData = {
         id: editingGift?.id || Date.now().toString(),
         name: values.name,
-        category: values.category,
+        category: normalizedCategory,
         points: values.points,
         stock: values.stock,
         exchanged: editingGift?.exchanged || 0,
@@ -538,7 +539,7 @@ const GiftPage: React.FC = () => {
         }
         message.success('添加成功');
       }
-      
+
       setModalVisible(false);
       form.resetFields();
     } catch (error) {
@@ -645,12 +646,12 @@ const GiftPage: React.FC = () => {
               </Tooltip>
             </div>
           ) : (
-            <div style={{ 
-              width: 60, 
-              height: 60, 
-              background: '#f5f5f5', 
-              display: 'flex', 
-              alignItems: 'center', 
+            <div style={{
+              width: 60,
+              height: 60,
+              background: '#f5f5f5',
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
               borderRadius: '4px',
               cursor: 'pointer'
@@ -693,22 +694,23 @@ const GiftPage: React.FC = () => {
             '服装': 'blue',
             '书籍': 'green',
             '玩具': 'orange',
+            '文具': 'blue',
             '纪念品': 'purple',
             '电子产品': 'cyan',
             '其他': 'default'
           };
-          
+
           // 如果类别在预定义映射中，使用对应颜色
           if (colorMap[cat]) {
             return colorMap[cat];
           }
-          
+
           // 为未知类别生成基于字符串的固定颜色
           const colors = ['magenta', 'lime', 'geekblue', 'volcano', 'gold', 'processing'];
           const index = cat.charCodeAt(0) % colors.length;
           return colors[index];
         };
-        
+
         return (
           <Tag color={getCategoryColor(category)}>
             {category}
@@ -765,15 +767,15 @@ const GiftPage: React.FC = () => {
              render: (_: any, record: GiftData) => (
         <Space size="small">
           <Tooltip title="编辑">
-            <Button 
-              type="link" 
-              icon={<EditOutlined />} 
+            <Button
+              type="link"
+              icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
             />
           </Tooltip>
           <Tooltip title="查看详情">
-            <Button 
-              type="link" 
+            <Button
+              type="link"
               icon={<EyeOutlined />}
               onClick={() => {
                 Modal.info({
@@ -804,8 +806,8 @@ const GiftPage: React.FC = () => {
             />
           </Tooltip>
           <Tooltip title="兑换历史">
-            <Button 
-              type="link" 
+            <Button
+              type="link"
               icon={<HistoryOutlined />}
               onClick={() => handleViewExchangeHistory(record)}
             />
@@ -817,9 +819,9 @@ const GiftPage: React.FC = () => {
             cancelText="取消"
           >
             <Tooltip title="删除">
-              <Button 
-                type="link" 
-                danger 
+              <Button
+                type="link"
+                danger
                 icon={<DeleteOutlined />}
               />
             </Tooltip>
@@ -837,14 +839,14 @@ const GiftPage: React.FC = () => {
   return (
     <div style={{ padding: '24px' }}>
       {/* 页面标题 */}
-      <div style={{ 
+      <div style={{
         marginBottom: '32px',
         textAlign: 'center',
         padding: '24px 0'
       }}>
-        <Typography.Title 
-          level={2} 
-          style={{ 
+        <Typography.Title
+          level={2}
+          style={{
             margin: 0,
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             WebkitBackgroundClip: 'text',
@@ -858,7 +860,7 @@ const GiftPage: React.FC = () => {
           高效管理礼品信息，精准控制库存兑换
         </Typography.Text>
         {lastSaveTime && (
-          <div style={{ 
+          <div style={{
             marginTop: '8px',
             padding: '8px 16px',
             background: 'rgba(82, 196, 26, 0.1)',
@@ -916,46 +918,46 @@ const GiftPage: React.FC = () => {
       </Row>
 
       {/* 礼品管理表格 */}
-      <Card 
-        title="礼品管理" 
+      <Card
+        title="礼品管理"
         extra={
           <Space>
-            <Button 
-              icon={<DownloadOutlined />} 
+            <Button
+              icon={<DownloadOutlined />}
               onClick={handleDownloadTemplate}
             >
               下载模板
             </Button>
-            <Button 
-              icon={<ImportOutlined />} 
+            <Button
+              icon={<ImportOutlined />}
               onClick={handleBatchImport}
             >
               批量导入
             </Button>
-            <Button 
-              icon={<HistoryOutlined />} 
+            <Button
+              icon={<HistoryOutlined />}
               onClick={testDataUpload}
               title="测试数据上传功能"
             >
               测试上传
             </Button>
-            <Button 
-              icon={<ExportOutlined />} 
+            <Button
+              icon={<ExportOutlined />}
               onClick={handleExport}
             >
               导出Excel
             </Button>
             {selectedRowKeys.length > 0 && (
-              <Button 
+              <Button
                 danger
-                icon={<DeleteOutlined />} 
+                icon={<DeleteOutlined />}
                 onClick={handleBatchDelete}
               >
                 批量删除 ({selectedRowKeys.length})
               </Button>
             )}
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               icon={<PlusOutlined />}
               onClick={handleAdd}
             >
@@ -964,9 +966,9 @@ const GiftPage: React.FC = () => {
           </Space>
         }
       >
-        <Table 
-          columns={columns} 
-          dataSource={gifts} 
+        <Table
+          columns={columns}
+          dataSource={gifts}
         rowKey="id"
         rowSelection={{
           selectedRowKeys,
@@ -1012,7 +1014,7 @@ const GiftPage: React.FC = () => {
                 label="礼品类别"
                 rules={[{ required: true, message: '请输入礼品类别' }]}
               >
-                <Select 
+                <Select
                   placeholder="请选择或输入礼品类别"
                   showSearch
                   allowClear
@@ -1025,6 +1027,7 @@ const GiftPage: React.FC = () => {
                   <Option value="服装">服装</Option>
                   <Option value="书籍">书籍</Option>
                   <Option value="玩具">玩具</Option>
+                  <Option value="文具">文具</Option>
                   <Option value="纪念品">纪念品</Option>
                   <Option value="电子产品">电子产品</Option>
                   <Option value="其他">其他</Option>
@@ -1040,9 +1043,9 @@ const GiftPage: React.FC = () => {
                 label="所需积分"
                 rules={[{ required: true, message: '请输入所需积分' }]}
               >
-                <InputNumber 
-                  min={1} 
-                  placeholder="请输入所需积分" 
+                <InputNumber
+                  min={1}
+                  placeholder="请输入所需积分"
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -1053,9 +1056,9 @@ const GiftPage: React.FC = () => {
                 label="库存数量"
                 rules={[{ required: true, message: '请输入库存数量' }]}
               >
-                <InputNumber 
-                  min={0} 
-                  placeholder="请输入库存数量" 
+                <InputNumber
+                  min={0}
+                  placeholder="请输入库存数量"
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -1066,8 +1069,8 @@ const GiftPage: React.FC = () => {
             name="description"
             label="礼品描述"
           >
-            <Input.TextArea 
-              rows={3} 
+            <Input.TextArea
+              rows={3}
               placeholder="请输入礼品描述（可选）"
             />
           </Form.Item>
@@ -1085,7 +1088,7 @@ const GiftPage: React.FC = () => {
                   </div>
                 )}
               </Upload>
-              
+
               {/* 图片预览 */}
               {imageUrl && (
                 <div style={{ marginTop: 16 }}>
@@ -1163,8 +1166,36 @@ const GiftPage: React.FC = () => {
         open={exchangeHistoryVisible}
         onCancel={() => setExchangeHistoryVisible(false)}
         footer={null}
-        width={800}
-      >
+        width={800}>
+        {/* 筛选与导出 */}
+        <Space style={{ marginBottom: 12 }}>
+          <Select
+            placeholder="筛选状态"
+            allowClear
+            style={{ width: 140 }}
+            onChange={() => setExchangeRecords(prev => prev.map(r => r))}
+            options={[
+              { label: '全部', value: 'all' },
+              { label: '完成', value: 'completed' },
+              { label: '待处理', value: 'pending' },
+              { label: '取消', value: 'cancelled' }
+            ]}
+          />
+          <Button
+            icon={<ExportOutlined />}
+            onClick={() => {
+              if (!currentGift) return;
+              const data = exchangeRecords.filter(r => r.giftId === currentGift.id);
+              const ws = XLSX.utils.json_to_sheet(data);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, '兑换历史');
+              const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+              saveAs(new Blob([wbout], { type: 'application/octet-stream' }), `${currentGift.name}-兑换历史.xlsx`);
+            }}
+          >
+            导出历史
+          </Button>
+        </Space>
         {currentGift && (
           <div>
             {/* 礼品信息摘要 */}
@@ -1258,10 +1289,10 @@ const GiftPage: React.FC = () => {
                   width: 100,
                   render: (status: string) => (
                     <Tag color={
-                      status === 'completed' ? 'green' : 
+                      status === 'completed' ? 'green' :
                       status === 'pending' ? 'orange' : 'red'
                     }>
-                      {status === 'completed' ? '已完成' : 
+                      {status === 'completed' ? '已完成' :
                        status === 'pending' ? '待处理' : '已取消'}
                     </Tag>
                   )
@@ -1290,4 +1321,4 @@ const GiftPage: React.FC = () => {
   );
 };
 
-export default GiftPage; 
+export default GiftPage;
